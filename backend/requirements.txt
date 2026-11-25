@@ -13,3 +13,4 @@ openpyxl
 pytest
 httpx
 PyJWT
+pwdlib[argon2]

@@ -13,7 +13,7 @@ from sqlalchemy import (
 from datetime import datetime
 from decimal import Decimal
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import UniqueConstraint,JSON
 
 from database import Base
 
@@ -105,8 +105,11 @@ class RawMaterial(Base):
         default=Decimal("0.00"),
         nullable=False
     )
-
-
+    minimum_stock: Mapped[Decimal] = mapped_column(
+        Numeric(12, 3),
+        default=Decimal("10.000"),
+        nullable=False
+    )
 # 5. CUSTOMERS TABLE
 class Customer(Base):
     __tablename__ = "customers"
@@ -469,5 +472,54 @@ class ProductionBatch(Base):
         DateTime,
         server_default=func.now()
     )
+# AUDIT LOG TABLE
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
 
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
+    actor_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True
+    )
+
+    action: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False
+    )
+
+    module: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False
+    )
+
+    entity_type: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False
+    )
+
+    entity_id: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True
+    )
+
+    description: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
+
+    details: Mapped[dict | None] = mapped_column(
+        JSON,
+        nullable=True
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        server_default=func.now(),
+        nullable=False,
+        index=True
+    )

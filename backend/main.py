@@ -5,7 +5,7 @@ MANUFACTURER_STATE = os.getenv(
 )
 from io import BytesIO
 from xml.sax.saxutils import escape
-
+from audit import write_audit_log
 from fastapi.responses import StreamingResponse
 
 from reportlab.lib.pagesizes import A4
@@ -50,7 +50,8 @@ from models import (
     Dispatch,
     Payment,
     Expense,
-    ProductionBatch
+    ProductionBatch,
+    AuditLog
 )
 class MaterialCreate(BaseModel):
     sku: str = Field(min_length=2, max_length=50)
@@ -231,7 +232,8 @@ def check_reference(db: Session, reference: str):
 )
 def add_inventory_material(
     data: MaterialCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     sku = data.sku.strip().upper()
 
@@ -261,6 +263,24 @@ def add_inventory_material(
 
     try:
         db.add(material)
+        db.flush()
+
+        write_audit_log(
+            db=db,
+            actor=current_user,
+            action="CREATE",
+            module="Inventory",
+            entity_type="RawMaterial",
+            entity_id=material.id,
+            description=f"Created inventory material: {material.name}",
+            details={
+                "sku": material.sku,
+                "name": material.name,
+                "unit": material.unit,
+                "unit_cost": str(material.unit_cost)
+            }
+        )
+
         db.commit()
         db.refresh(material)
 
@@ -279,6 +299,7 @@ def add_inventory_material(
         raise
 
 
+
 @app.post(
     "/inventory/purchases",
     status_code=201,
@@ -286,7 +307,8 @@ def add_inventory_material(
 )
 def record_inventory_purchase(
     data: PurchaseCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     material = db.query(RawMaterial).filter(
         RawMaterial.sku == data.sku.strip().upper()
@@ -301,10 +323,8 @@ def record_inventory_purchase(
     check_reference(db, data.reference.strip())
 
     current_stock = get_material_stock(db, material.id)
-
     new_stock = current_stock + data.quantity
 
-    # Update the current recorded unit cost.
     material.unit_cost = data.unit_cost
     material.cost_per_unit = data.unit_cost
 
@@ -320,6 +340,25 @@ def record_inventory_purchase(
 
     try:
         db.add(movement)
+        db.flush()
+
+        write_audit_log(
+            db=db,
+            actor=current_user,
+            action="CREATE",
+            module="Inventory",
+            entity_type="StockMovement",
+            entity_id=movement.id,
+            description=f"Recorded purchase for {material.name}",
+            details={
+                "sku": material.sku,
+                "material": material.name,
+                "quantity": str(data.quantity),
+                "unit_cost": str(data.unit_cost),
+                "reference": data.reference.strip()
+            }
+        )
+
         db.commit()
 
         return {
@@ -335,7 +374,6 @@ def record_inventory_purchase(
         db.rollback()
         raise
 
-
 @app.post(
     "/inventory/adjustments",
     status_code=201,
@@ -345,7 +383,8 @@ def record_inventory_purchase(
 )
 def adjust_inventory_stock(
     data: StockAdjustmentCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     material = db.query(RawMaterial).filter(
         RawMaterial.sku == data.sku.strip().upper()
@@ -393,6 +432,27 @@ def adjust_inventory_stock(
 
     try:
         db.add(movement)
+        db.flush()
+
+        write_audit_log(
+            db=db,
+            actor=current_user,
+            action="ADJUST",
+            module="Inventory",
+            entity_type="StockMovement",
+            entity_id=movement.id,
+            description=f"Stock adjusted for {material.name}",
+            details={
+                "sku": material.sku,
+                "material": material.name,
+                "direction": data.direction,
+                "quantity": str(data.quantity),
+                "previous_stock": str(current_stock),
+                "new_stock": str(new_stock),
+                "reference": data.reference.strip()
+            }
+        )
+
         db.commit()
 
         return {
@@ -407,21 +467,20 @@ def adjust_inventory_stock(
     except Exception:
         db.rollback()
         raise
+
 # 1. CURRENT STOCK
 @app.get(
     "/inventory/stock",
     dependencies=[Depends(require_roles(
-    "Owner",
-    "Admin",
-    "Production Supervisor",
-    "Accountant/Auditor"
-))]
+        "Owner",
+        "Admin",
+        "Production Supervisor",
+        "Accountant/Auditor"
+    ))]
 )
 def get_inventory_stock(db: Session = Depends(get_db)):
 
-    items = []
-
-    raw_materials = db.query(RawMaterial).order_by(
+    materials = db.query(RawMaterial).order_by(
         RawMaterial.id
     ).all()
 
@@ -429,7 +488,67 @@ def get_inventory_stock(db: Session = Depends(get_db)):
         Product.is_active == True
     ).order_by(Product.id).all()
 
-    # Calculate raw material stock
+    items = []
+
+    for material in materials:
+        stock = get_material_stock(db, material.id)
+
+        items.append({
+            "sku": material.sku,
+            "name": material.name,
+            "category": (
+                "Packaging"
+                if material.sku.startswith("PKG-")
+                else "Raw Material"
+            ),
+            "quantity": float(stock),
+            "unit": material.unit,
+            "unit_cost": float(material.unit_cost or 0),
+            "minimum_stock": float(material.minimum_stock)
+        })
+
+    for product in products:
+        totals = db.query(
+            func.coalesce(func.sum(StockMovement.quantity_in), 0),
+            func.coalesce(func.sum(StockMovement.quantity_out), 0)
+        ).filter(
+            StockMovement.product_id == product.id
+        ).first()
+
+        stock = totals[0] - totals[1]
+
+        items.append({
+            "sku": product.sku,
+            "name": product.name,
+            "category": "Finished Goods",
+            "quantity": float(stock),
+            "unit": product.unit,
+            "unit_cost": 0,
+            "minimum_stock": 0
+        })
+
+    return {
+        "total_items": len(items),
+        "items": items
+    }
+
+@app.get(
+    "/inventory/low-stock",
+    dependencies=[Depends(require_roles(
+        "Owner",
+        "Admin",
+        "Production Supervisor",
+        "Accountant/Auditor"
+    ))]
+)
+def get_low_stock_alerts(db: Session = Depends(get_db)):
+
+    alerts = []
+
+    raw_materials = db.query(RawMaterial).order_by(
+        RawMaterial.id
+    ).all()
+
     for material in raw_materials:
 
         movement = db.query(
@@ -443,53 +562,28 @@ def get_inventory_stock(db: Session = Depends(get_db)):
             StockMovement.raw_material_id == material.id
         ).first()
 
-        quantity = movement[0] - movement[1]
+        available_stock = movement[0] - movement[1]
+        minimum_stock = material.minimum_stock
 
-        cost = material.unit_cost or material.cost_per_unit
+        if available_stock <= minimum_stock:
 
-        items.append({
-            "sku": material.sku,
-            "name": material.name,
-            "category": (
-                "Packaging"
-                if material.sku.startswith("PKG-")
-                else "Raw Material"
-            ),
-            "quantity": float(quantity),
-            "unit": material.unit,
-            "cost": float(cost) if cost and cost > 0 else None
-        })
-
-    # Calculate finished product stock
-    for product in products:
-
-        movement = db.query(
-            func.coalesce(
-                func.sum(StockMovement.quantity_in), 0
-            ),
-            func.coalesce(
-                func.sum(StockMovement.quantity_out), 0
-            )
-        ).filter(
-            StockMovement.product_id == product.id
-        ).first()
-
-        quantity = movement[0] - movement[1]
-
-        items.append({
-            "sku": product.sku,
-            "name": product.name,
-            "category": "Finished Goods",
-            "quantity": float(quantity),
-            "unit": product.unit,
-            "cost": None
-        })
+            alerts.append({
+                "sku": material.sku,
+                "name": material.name,
+                "available_quantity": float(available_stock),
+                "minimum_stock": float(minimum_stock),
+                "unit": material.unit,
+                "status": (
+                    "OUT_OF_STOCK"
+                    if available_stock <= 0
+                    else "LOW_STOCK"
+                )
+            })
 
     return {
-        "total_items": len(items),
-        "items": items
+        "total_alerts": len(alerts),
+        "alerts": alerts
     }
-
 
 # 2. STOCK MOVEMENT LEDGER
 @app.get(
@@ -717,6 +811,7 @@ def get_production_batches(db: Session = Depends(get_db)):
         "total_batches": len(results),
         "batches": results
     }
+
 @app.post(
     "/production/batches",
     status_code=201,
@@ -726,7 +821,8 @@ def get_production_batches(db: Session = Depends(get_db)):
 )
 def record_production_batch(
     data: ProductionBatchCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     batch_number = data.batch_number.strip().upper()
     product_sku = data.product_sku.strip().upper()
@@ -902,7 +998,35 @@ def record_production_batch(
 
             db.add(expense)
 
-        # 10. Save everything together
+        # 10. Record audit event
+        write_audit_log(
+            db=db,
+            actor=current_user,
+            action="CREATE",
+            module="Production",
+            entity_type="ProductionBatch",
+            entity_id=batch.id,
+            description=f"Recorded production batch: {batch_number}",
+            details={
+                "batch_number": batch_number,
+                "product": product.name,
+                "product_sku": product.sku,
+                "planned_output": data.planned_output,
+                "actual_good_output": data.actual_good_output,
+                "damaged_pouches": data.damaged_pouches,
+                "materials_consumed": [
+                    {
+                        "sku": record["material"].sku,
+                        "name": record["material"].name,
+                        "quantity": str(record["quantity"])
+                    }
+                    for record in usage_records
+                ],
+                "expenses_recorded": len(data.expenses)
+            }
+        )
+
+        # 11. Save everything together
         db.commit()
 
         return {
@@ -920,6 +1044,7 @@ def record_production_batch(
     except Exception:
         db.rollback()
         raise
+
 @app.get(
     "/sales/order-options",
     dependencies=[Depends(require_roles("Owner", "Admin", "Salesman"))]
@@ -953,6 +1078,7 @@ def get_sales_order_options(db: Session = Depends(get_db)):
     }
 
 
+
 @app.post(
     "/sales/orders",
     status_code=201,
@@ -960,7 +1086,8 @@ def get_sales_order_options(db: Session = Depends(get_db)):
 )
 def create_sales_order(
     data: SalesOrderCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     order_number = data.order_number.strip().upper()
     product_sku = data.product_sku.strip().upper()
@@ -1013,6 +1140,27 @@ def create_sales_order(
             unit_price=product.selling_price
         )
         db.add(order_item)
+
+        write_audit_log(
+            db=db,
+            actor=current_user,
+            action="CREATE",
+            module="Sales",
+            entity_type="SalesOrder",
+            entity_id=order.id,
+            description=f"Created sales order: {order_number}",
+            details={
+                "order_number": order_number,
+                "customer": customer.name,
+                "product": product.name,
+                "product_sku": product.sku,
+                "quantity": data.quantity,
+                "available_quantity": available_quantity,
+                "shortage": shortage,
+                "unit_price": str(product.selling_price)
+            }
+        )
+
         db.commit()
 
         return {
@@ -1029,7 +1177,6 @@ def create_sales_order(
     except Exception:
         db.rollback()
         raise
-
 
 @app.get(
     "/sales/orders",
@@ -1103,7 +1250,8 @@ from decimal import Decimal, ROUND_HALF_UP
 )
 def approve_sales_order(
     order_number: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     order_number = order_number.strip().upper()
 
@@ -1315,7 +1463,27 @@ def approve_sales_order(
 
         # 10. Update order status
         order.status = "APPROVED"
-
+        db.flush()
+        write_audit_log(
+            db=db,
+            actor=current_user,
+            action="APPROVE",
+            module="Sales",
+            entity_type="Invoice",
+            entity_id=invoice.id,
+            description=f"Approved sales order and generated invoice: {invoice.invoice_number}",
+            details={
+                "order_number": order.order_number,
+                "invoice_number": invoice.invoice_number,
+                "customer": customer.name,
+                "taxable_amount": str(taxable_amount),
+                "cgst_amount": str(cgst_amount),
+                "sgst_amount": str(sgst_amount),
+                "igst_amount": str(igst_amount),
+                "total_amount": str(total_amount),
+                "invoice_status": invoice.status
+    }
+)
         # 11. Save invoice and order together
         db.commit()
         db.refresh(invoice)
@@ -1806,7 +1974,8 @@ def get_accounts_overview(db: Session = Depends(get_db)):
 )
 def record_customer_payment(
     data: PaymentCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     try:
         # 1. Find and lock invoice
@@ -1834,7 +2003,6 @@ def record_customer_payment(
 
         already_paid = Decimal(str(already_paid))
         invoice_total = Decimal(str(invoice.total_amount))
-
         outstanding = invoice_total - already_paid
 
         if outstanding <= 0:
@@ -1874,11 +2042,28 @@ def record_customer_payment(
         db.add(payment)
         db.flush()
 
-        # 6. Calculate updated balance
+        # 6. Record audit log
+        write_audit_log(
+            db=db,
+            actor=current_user,
+            action="CREATE",
+            module="Accounts",
+            entity_type="Payment",
+            entity_id=payment.id,
+            description=f"Recorded payment for invoice: {invoice.invoice_number}",
+            details={
+                "invoice_number": invoice.invoice_number,
+                "amount": str(data.amount),
+                "payment_method": data.payment_method,
+                "reference_number": data.reference_number
+            }
+        )
+
+        # 7. Calculate updated balance
         new_paid = already_paid + data.amount
         new_outstanding = invoice_total - new_paid
 
-        # 7. Commit
+        # 8. Commit
         db.commit()
         db.refresh(payment)
 
@@ -1899,13 +2084,9 @@ def record_customer_payment(
         db.rollback()
         raise
 
-    except Exception as e:
+    except Exception:
         db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
-
+        raise
 @app.get(
     "/reports/business/pdf",
     dependencies=[Depends(require_roles(
@@ -2365,3 +2546,47 @@ def download_business_report_pdf(db: Session = Depends(get_db)):
                 'attachment; filename="Business_Performance_Report.pdf"'
         }
     )
+
+@app.get(
+    "/audit/logs",
+    dependencies=[Depends(require_roles(
+        "Owner",
+        "Admin",
+        "Accountant/Auditor"
+    ))]
+)
+def get_audit_logs(
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db)
+):
+    logs = db.query(
+        AuditLog,
+        User.full_name
+    ).outerjoin(
+        User,
+        AuditLog.actor_id == User.id
+    ).order_by(
+        AuditLog.created_at.desc()
+    ).limit(limit).all()
+
+    return {
+        "total": len(logs),
+        "logs": [
+            {
+                "id": log.id,
+                "actor_id": log.actor_id,
+                "actor_name": actor_name or "Unknown User",
+                "action": log.action,
+                "module": log.module,
+                "entity_type": log.entity_type,
+                "entity_id": log.entity_id,
+                "description": log.description,
+                "details": log.details,
+                "created_at": (
+                    log.created_at.isoformat()
+                    if log.created_at else None
+                )
+            }
+            for log, actor_name in logs
+        ]
+    }

@@ -1,181 +1,237 @@
-# OrderToAudit
-
-### Integrated Inventory, Production, Sales & Audit Management System
+# ✨ OrderToAudit
 
 <p align="center">
-  A centralized business management platform designed for small and medium-scale manufacturers.
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=24&pause=1000&color=00C9A7&center=true&vCenter=true&width=750&lines=Smart+Manufacturing+Management;Inventory+%7C+Production+%7C+Sales;Accounts+%7C+Analytics+%7C+Audit" alt="Animated OrderToAudit introduction" />
+</p>
+
+<p align="center">
+  <b>An Integrated Manufacturing Business Management Platform</b>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/React-Frontend-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
-  <img src="https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
-  <img src="https://img.shields.io/badge/PostgreSQL-Database-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" />
-  <img src="https://img.shields.io/badge/Python-3.x-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi" />
+  <img src="https://img.shields.io/badge/PostgreSQL-Database-4169E1?style=for-the-badge&logo=postgresql" />
+  <img src="https://img.shields.io/badge/Python-Backend-3776AB?style=for-the-badge&logo=python" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Development-00C9A7?style=flat-square" />
+  <img src="https://img.shields.io/badge/Tests-12%20Passed-success?style=flat-square" />
+  <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" />
 </p>
 
 ---
 
-## Overview
+## 🚀 About the Project
 
-**OrderToAudit** is an integrated business management system that connects inventory, production, sales, invoicing, payments, and financial reporting in one platform.
+**OrderToAudit** is a centralized manufacturing management system that connects inventory, production, sales, invoicing, payments, and financial reporting in one application.
 
-It is designed around a manufacturing workflow where every business transaction can be tracked, helping reduce manual calculations, improve stock visibility, monitor production performance, and maintain transaction records.
+Designed around the workflow of small and medium-scale manufacturers, it helps businesses monitor operations, track material consumption, calculate production variance, manage customer orders, and maintain transaction records.
 
-Instead of managing different business operations separately, OrderToAudit brings them together through a centralized application.
+The main objective is simple:
 
-## Key Features
-
-### 📦 Inventory Management
-- Track raw materials, packaging materials, and finished goods.
-- Record material purchases and stock adjustments.
-- Maintain a transaction-based stock ledger.
-- Prevent stock adjustments that would result in negative inventory.
-- View current stock levels and inventory summaries.
-
-### 🏭 Production Management
-- Create and manage production batches.
-- Define and use Bills of Materials (BOM).
-- Track planned output and actual good output.
-- Record damaged packaging and material consumption.
-- Calculate production yield and material usage variance.
-- Associate production expenses with batches.
-
-### 🛒 Sales Management
-- Create and manage customer sales orders.
-- Track order status and available finished stock.
-- Validate stock availability before order approval.
-- Manage dispatch records and quantities.
-
-### 🧾 Invoice Management
-- Generate invoices from approved sales orders.
-- Calculate applicable GST components.
-- Generate downloadable PDF invoices.
-- Track invoice status and outstanding amounts.
-
-### 💰 Accounts Management
-- Record customer payments.
-- Prevent overpayments against invoices.
-- Track payment history and outstanding balances.
-- Record and review business expenses.
-
-### 📊 Reports & Analytics
-- Inventory summaries and stock reports.
-- Production performance reports.
-- Material usage variance analysis.
-- Sales and dispatch reports.
-- Financial summaries.
-- GST summaries.
-- Downloadable business performance PDF reports.
-
-### 🔐 Authentication & Role-Based Access
-- JWT-based authentication.
-- Password hashing.
-- Role-based access control.
-- Protected API endpoints.
-
-Supported roles:
-- Owner
-- Admin
-- Salesman
-- Production Supervisor
-- Accountant / Auditor
+> **Every transaction should be traceable, every stock movement should be accountable, and every business operation should be connected.**
 
 ---
 
-## Technology Stack
+## ⚡ Core Modules
 
-| Layer | Technologies |
+<table>
+<tr>
+<td width="50%">
+
+### 📦 Inventory Management
+- Raw material tracking
+- Packaging material tracking
+- Finished goods monitoring
+- Purchase recording
+- Stock adjustments
+- Transaction-based stock ledger
+
+</td>
+<td width="50%">
+
+### 🏭 Production Management
+- Production batch creation
+- Bill of Materials (BOM)
+- Material consumption tracking
+- Actual vs planned output
+- Damaged goods recording
+- Yield and material variance
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 🛒 Sales Management
+- Customer management
+- Sales order creation
+- Stock availability validation
+- Order approval
+- Dispatch tracking
+
+</td>
+<td width="50%">
+
+### 🧾 Invoice Management
+- GST invoice generation
+- Tax calculations
+- PDF invoice downloads
+- Invoice status tracking
+- Outstanding balance calculation
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 💰 Accounts Management
+- Customer payment recording
+- Payment history
+- Outstanding balance tracking
+- Expense management
+
+</td>
+<td width="50%">
+
+### 📊 Reports & Analytics
+- Inventory reports
+- Production reports
+- Material variance analysis
+- Financial summaries
+- GST summaries
+- Business performance PDF
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+flowchart TB
+    U["👤 Business Users"] --> FE["React Frontend<br/>Vite + Tailwind CSS"]
+
+    FE --> API["FastAPI REST API"]
+
+    API --> AUTH["JWT Authentication<br/>Role-Based Access Control"]
+
+    AUTH --> INV["Inventory Module"]
+    AUTH --> PROD["Production Module"]
+    AUTH --> SALES["Sales Module"]
+    AUTH --> ACC["Accounts Module"]
+    AUTH --> REP["Reports & Analytics"]
+
+    INV --> ORM["SQLAlchemy ORM"]
+    PROD --> ORM
+    SALES --> ORM
+    ACC --> ORM
+    REP --> ORM
+
+    ORM --> DB[("PostgreSQL Database")]
+
+    REP --> PDF["PDF Report Generation"]
+    SALES --> PDF
+
+    style U fill:#172554,color:#fff
+    style FE fill:#164e63,color:#fff
+    style API fill:#065f46,color:#fff
+    style AUTH fill:#713f12,color:#fff
+    style DB fill:#1e3a8a,color:#fff
+    style PDF fill:#4c1d95,color:#fff
+```
+
+---
+
+## 🔄 End-to-End Business Workflow
+
+The system connects the complete manufacturing lifecycle.
+
+```mermaid
+flowchart TD
+    A(["Start"]) --> B["Purchase Raw Materials"]
+    B --> C["Update Inventory"]
+    C --> D["Create Production Batch"]
+    D --> E["Consume Materials Using BOM"]
+    E --> F["Record Actual Production Output"]
+    F --> G["Calculate Yield & Material Variance"]
+    G --> H["Update Finished Goods Stock"]
+    H --> I["Create Customer Sales Order"]
+    I --> J{"Stock Available?"}
+
+    J -->|No| K["Review Shortage"]
+    K --> I
+
+    J -->|Yes| L["Approve Sales Order"]
+    L --> M["Generate GST Invoice"]
+    M --> N["Dispatch Products"]
+    N --> O["Record Customer Payment"]
+    O --> P["Update Accounts"]
+    P --> Q["Generate Business Reports"]
+    Q --> R(["End"])
+
+    style A fill:#047857,color:#fff
+    style R fill:#047857,color:#fff
+    style J fill:#92400e,color:#fff
+    style Q fill:#1d4ed8,color:#fff
+```
+
+---
+
+## 🔐 Role-Based Access Control
+
+Different users have access to different business operations.
+
+```mermaid
+flowchart TD
+    A["User Login"] --> B["JWT Authentication"]
+    B --> C{"Valid Credentials?"}
+
+    C -->|No| D["Access Denied"]
+    C -->|Yes| E["Identify User Role"]
+
+    E --> F["Owner / Admin"]
+    E --> G["Salesman"]
+    E --> H["Production Supervisor"]
+    E --> I["Accountant / Auditor"]
+
+    F --> J["Administrative Operations"]
+    G --> K["Sales Operations"]
+    H --> L["Production & Inventory"]
+    I --> M["Accounts & Financial Reports"]
+
+    style D fill:#991b1b,color:#fff
+    style F fill:#1d4ed8,color:#fff
+    style G fill:#0e7490,color:#fff
+    style H fill:#a16207,color:#fff
+    style I fill:#6b21a8,color:#fff
+```
+
+---
+
+## 🧰 Technology Stack
+
+| Layer | Technology |
 |---|---|
-| Frontend | React, Vite, Tailwind CSS |
+| Frontend | React |
+| Build Tool | Vite |
+| Styling | Tailwind CSS |
 | Backend | Python, FastAPI |
 | Database | PostgreSQL |
 | ORM | SQLAlchemy |
-| Authentication | JWT, Argon2 password hashing |
+| Authentication | JWT |
+| Password Hashing | Argon2 |
 | PDF Generation | ReportLab |
-| Testing | Pytest, FastAPI TestClient |
+| Testing | Pytest |
 | Version Control | Git, GitHub |
 
 ---
 
-## System Architecture
-
-```text
-             ┌─────────────────────────┐
-             │      React Frontend     │
-             │   Vite + Tailwind CSS   │
-             └────────────┬────────────┘
-                          │
-                     REST APIs
-                          │
-             ┌────────────▼────────────┐
-             │      FastAPI Backend    │
-             │                         │
-             │  Authentication & RBAC  │
-             │  Inventory Management   │
-             │  Production Management  │
-             │  Sales & Invoicing      │
-             │  Accounts & Payments    │
-             │  Reports & Analytics    │
-             └────────────┬────────────┘
-                          │
-                    SQLAlchemy ORM
-                          │
-             ┌────────────▼────────────┐
-             │       PostgreSQL        │
-             │                         │
-             │ Customers, Products     │
-             │ Stock Movements         │
-             │ Production Batches      │
-             │ Orders & Invoices       │
-             │ Payments & Expenses     │
-             └─────────────────────────┘
-```
-
-## Business Workflow
-
-```text
-Raw Material Purchase
-          │
-          ▼
-   Inventory Update
-          │
-          ▼
-   Production Planning
-          │
-          ▼
-   Material Consumption
-          │
-          ▼
-   Finished Goods Stock
-          │
-          ▼
-     Sales Order
-          │
-          ▼
-   Stock Verification
-          │
-          ▼
-    Order Approval
-          │
-          ▼
-   GST Invoice Creation
-          │
-          ▼
-       Dispatch
-          │
-          ▼
-   Customer Payment
-          │
-          ▼
-   Financial Reporting
-          │
-          ▼
-      Audit Records
-```
-
----
-
-## Project Structure
+## 📂 Project Structure
 
 ```text
 OrderToAudit/
@@ -204,7 +260,7 @@ OrderToAudit/
 │   ├── record_payment.py
 │   ├── record_expenses.py
 │   │
-│   └── ...other business modules
+│   └── ...other modules
 │
 ├── frontend/
 │   ├── public/
@@ -228,73 +284,48 @@ OrderToAudit/
 
 ---
 
-## Getting Started
+## ⚙️ Installation & Setup
 
-### 1. Prerequisites
-
-Install the following:
-
-- Python
-- Node.js and npm
-- PostgreSQL
-- Git
-
-### 2. Clone the Repository
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/nk-00-01/OrderToAudit.git
 cd OrderToAudit
 ```
 
-### 3. Backend Setup
-
-Open a terminal in the project root.
+### 2. Backend setup
 
 ```powershell
 cd backend
-```
-
-Create a virtual environment:
-
-```powershell
 python -m venv venv
-```
-
-Activate it:
-
-```powershell
 .\venv\Scripts\Activate.ps1
 ```
 
-Install the backend dependencies used by the project:
+Install dependencies:
 
 ```powershell
-pip install fastapi uvicorn sqlalchemy psycopg[binary] python-dotenv pwdlib[argon2] PyJWT python-multipart reportlab pytest httpx
+pip install fastapi uvicorn sqlalchemy "psycopg[binary]" python-dotenv "pwdlib[argon2]" PyJWT python-multipart reportlab pytest httpx
 ```
 
-### 4. Environment Configuration
+### 3. Configure environment variables
 
-Create a `.env` file inside the `backend` directory.
-
-Configure your PostgreSQL connection using the environment variable names expected by `database.py`.
-
-Add a strong, randomly generated JWT secret:
+Create `backend/.env`:
 
 ```env
 SECRET_KEY=your_generated_random_secret
 ```
 
-**Important:** Never commit your `.env` file or expose database credentials and secret keys.
+Configure the PostgreSQL connection using the exact environment variable names expected by `backend/database.py`.
 
-### 5. Database Setup
+Never commit `.env` or expose database credentials.
 
-Create a PostgreSQL database named:
+### 4. Create the database
 
-```text
-order_to_audit
+Create a PostgreSQL database:
+
+```sql
+CREATE DATABASE order_to_audit;
 ```
-
-Configure the database connection in your backend environment.
 
 Initialize the database:
 
@@ -302,139 +333,100 @@ Initialize the database:
 python init_db.py
 ```
 
-If you want to load the demonstration data, use the project's seed and setup scripts according to their required execution order.
+Load demonstration data using the required setup and seed scripts.
 
-### 6. Run the Backend
-
-From the `backend` directory:
+### 5. Start the backend
 
 ```powershell
 python -m uvicorn main:app --reload
 ```
 
-Backend:
+Backend: `http://127.0.0.1:8000`
 
-```text
-http://127.0.0.1:8000
-```
+API Documentation: `http://127.0.0.1:8000/docs`
 
-Interactive API documentation:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-### 7. Frontend Setup
+### 6. Start the frontend
 
 Open a second terminal:
 
 ```powershell
 cd frontend
-```
-
-Install dependencies:
-
-```powershell
 npm install
-```
-
-Start the development server:
-
-```powershell
 npm run dev
 ```
 
-Frontend:
-
-```text
-http://localhost:5173
-```
+Frontend: `http://localhost:5173`
 
 ---
 
-## Testing
+## 🧪 Testing & Build
 
-The backend API test suite uses Pytest.
-
-From the `backend` directory:
+### Backend tests
 
 ```powershell
+cd backend
 python -m pytest -W default
 ```
 
-**Current test result:**
+**Latest test result:**
 
 ```text
 12 passed, 1 warning
 ```
 
-The warning is a Starlette TestClient/httpx deprecation notice and does not cause the tests to fail.
+The warning is a Starlette TestClient/httpx deprecation notice.
 
-## Production Build
-
-To create an optimized frontend production build:
+### Frontend production build
 
 ```powershell
 cd frontend
 npm run build
 ```
 
-The generated production files are placed in the `dist` directory.
+Production output is generated in `frontend/dist`.
 
 ---
 
-## Security & Data Integrity
+## 🛡️ Security & Data Integrity
 
-The system incorporates:
+- JWT-based authentication
+- Password hashing
+- Role-based API permissions
+- Stock availability validation
+- Negative stock prevention
+- Payment validation
+- Transaction-based inventory ledger
+- Environment-based secret management
 
-- JWT authentication.
-- Password hashing.
-- Role-based endpoint authorization.
-- Stock availability validation.
-- Prevention of negative stock adjustments.
-- Payment and overpayment validation.
-- Transaction-based inventory tracking.
-- Protected environment configuration.
-
-**Note:** GST calculations and invoice configuration should be verified against the actual business registration details and applicable tax requirements before real-world use.
+*GST configuration and invoice calculations must be verified against actual business registration and applicable tax requirements before real-world use.*
 
 ---
 
-## Project Highlights
+## 📈 Future Enhancements
 
-- Integrated manufacturing business workflow.
-- Centralized inventory and transaction tracking.
-- BOM-based production monitoring.
-- Production yield and material variance calculations.
-- GST invoice generation.
-- Customer payment and outstanding tracking.
-- Role-based application access.
-- Downloadable PDF reports.
-- Backend API test coverage.
-
-## Future Enhancements
-
-- Dashboard charts and advanced business analytics.
-- Automated email notifications.
-- Cloud deployment.
-- More comprehensive audit logs.
-- Excel report exports.
-- Improved automated test coverage.
-- Fine-grained permissions and configurable business settings.
+- [ ] Advanced dashboard analytics
+- [ ] Excel report exports
+- [ ] Email notifications
+- [ ] Cloud deployment
+- [ ] More comprehensive automated tests
+- [ ] Advanced audit logs
+- [ ] Configurable business settings
 
 ---
 
-## Author
+## 👨‍💻 Author
 
 **OrderToAudit** — Full-stack manufacturing management project.
 
 GitHub: [@nk-00-01](https://github.com/nk-00-01)
 
-Project Repository: [OrderToAudit](https://github.com/nk-00-01/OrderToAudit)
+Repository: [OrderToAudit](https://github.com/nk-00-01/OrderToAudit)
 
 ---
 
 <p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:0F766E,100:1D4ED8&height=120&section=footer" width="100%" />
+  <br/>
   <b>OrderToAudit</b><br/>
-  Connecting Inventory • Production • Sales • Accounts • Audit
+  <i>One Platform. Every Transaction. Complete Visibility.</i>
 </p>

@@ -1,6 +1,38 @@
 
 import { useState } from "react";
-import { Activity, LockKeyhole, Mail } from "lucide-react";
+import {
+  Activity,
+  LockKeyhole,
+  Mail,
+  Factory,
+  Package,
+  Boxes,
+  Truck,
+  ReceiptText,
+  ChartNoAxesCombined,
+  ShieldCheck,
+  ClipboardCheck,
+  ArrowRight,
+  Workflow,
+} from "lucide-react";
+import { API_URL } from "./config";
+const floatingIcons = [
+  { Icon: Factory, className: "symbol-one" },
+  { Icon: Package, className: "symbol-two" },
+  { Icon: ChartNoAxesCombined, className: "symbol-three" },
+  { Icon: Truck, className: "symbol-four" },
+  { Icon: ReceiptText, className: "symbol-five" },
+  { Icon: Boxes, className: "symbol-six" },
+];
+
+const workflowIcons = [
+  Factory,
+  Package,
+  Boxes,
+  Truck,
+  ReceiptText,
+  ChartNoAxesCombined,
+];
 
 function Login({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -19,7 +51,7 @@ function Login({ onLogin }) {
       formData.append("password", password);
 
       const response = await fetch(
-        "http://127.0.0.1:8000/auth/login",
+        `${API_URL}/auth/login`,
         {
           method: "POST",
           headers: {
@@ -44,83 +76,199 @@ function Login({ onLogin }) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#080d19] px-5 text-slate-200">
-      <div className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#101a2c] p-8 shadow-2xl">
+    <div className="login-page">
 
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-blue-600">
-            <Activity size={28} className="text-white" />
+      {/* Animated background */}
+      <div className="login-background">
+        <div className="login-glow glow-one" />
+        <div className="login-glow glow-two" />
+        <div className="login-grid" />
+      </div>
+
+      {/* Floating symbols */}
+      <div className="floating-symbols">
+        {floatingIcons.map(({ Icon, className }, index) => (
+          <div className={`floating-symbol ${className}`} key={index}>
+            <Icon size={25} />
+          </div>
+        ))}
+      </div>
+
+      <div className="login-layout">
+
+        {/* LEFT SIDE */}
+        <section className="login-hero">
+
+          <div className="brand-tag">
+            <Activity size={15} />
+            <span>SMART BUSINESS MANAGEMENT</span>
           </div>
 
-          <h1 className="text-2xl font-bold text-white">
-            OrderToAudit
-          </h1>
+          <div className="hero-heading">
+            <h1>
+              One Platform.
+              <br />
+              <span>Complete Control.</span>
+            </h1>
 
-          <p className="mt-2 text-sm text-slate-400">
-            Manufacturing Management System
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-
-          <div>
-            <label className="mb-2 block text-sm text-slate-300">
-              Email Address
-            </label>
-
-            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#080d19] px-4">
-              <Mail size={18} className="text-slate-500" />
-
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                className="w-full bg-transparent py-3 text-sm text-white outline-none"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm text-slate-300">
-              Password
-            </label>
-
-            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#080d19] px-4">
-              <LockKeyhole size={18} className="text-slate-500" />
-
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="w-full bg-transparent py-3 text-sm text-white outline-none"
-              />
-            </div>
-          </div>
-
-          {error && (
-            <p className="rounded-lg bg-red-500/10 p-3 text-sm text-red-400">
-              {error}
+            <p>
+              Manage your manufacturing operations with
+              intelligent inventory, production, sales,
+              and financial visibility.
             </p>
-          )}
+          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
-          >
-            {loading ? "Signing in..." : "Sign In"}
-          </button>
+          {/* Animated workflow panel */}
+          <div className="workflow-panel">
 
-        </form>
+            <div className="workflow-heading">
+              <div>
+                <span className="live-dot" />
+                <span>CONNECTED WORKFLOW</span>
+              </div>
+              <Workflow size={19} />
+            </div>
 
-        <p className="mt-7 text-center text-xs text-slate-500">
-          Secure access · Role-Based Authentication
-        </p>
+            <div className="workflow-track">
+              <div className="workflow-track-inner">
+                {[...workflowIcons, ...workflowIcons].map(
+                  (Icon, index) => (
+                    <div className="workflow-node" key={index}>
+                      <Icon size={24} />
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
 
+            <div className="workflow-labels">
+              <span>Inventory</span>
+              <span>Production</span>
+              <span>Sales</span>
+              <span>Accounts</span>
+            </div>
+
+            <div className="workflow-bottom">
+              <div>
+                <span className="workflow-status-dot" />
+                <span>All operations connected</span>
+              </div>
+              <span>END-TO-END VISIBILITY</span>
+            </div>
+          </div>
+
+          {/* Feature highlights */}
+          <div className="login-features">
+            <div className="login-feature">
+              <ShieldCheck size={19} />
+              <span>Secure Access</span>
+            </div>
+
+            <div className="login-feature">
+              <ClipboardCheck size={19} />
+              <span>Transaction Tracking</span>
+            </div>
+
+            <div className="login-feature">
+              <ChartNoAxesCombined size={19} />
+              <span>Business Insights</span>
+            </div>
+          </div>
+
+        </section>
+
+        {/* RIGHT SIDE LOGIN */}
+        <section className="login-form-section">
+
+          <div className="login-card">
+
+            <div className="login-card-top">
+              <div className="login-logo">
+                <Activity size={29} />
+              </div>
+
+              <div className="login-brand-name">
+                <h2>OrderToAudit</h2>
+                <span>MANUFACTURING INTELLIGENCE</span>
+              </div>
+            </div>
+
+            <div className="login-welcome">
+              <span className="welcome-label">WELCOME BACK</span>
+              <h2>Sign in to your account</h2>
+              <p>Enter your credentials to access your workspace.</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="login-form">
+
+              <div className="login-field">
+                <label htmlFor="login-email">Email Address</label>
+
+                <div className="login-input-wrapper">
+                  <Mail size={19} />
+
+                  <input
+                    id="login-email"
+                    type="email"
+                    required
+                    autoComplete="username"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@company.com"
+                  />
+                </div>
+              </div>
+
+              <div className="login-field">
+                <label htmlFor="login-password">Password</label>
+
+                <div className="login-input-wrapper">
+                  <LockKeyhole size={19} />
+
+                  <input
+                    id="login-password"
+                    type="password"
+                    required
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div className="login-error" role="alert">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="login-submit"
+              >
+                <span>
+                  {loading ? "Signing in..." : "Access Workspace"}
+                </span>
+
+                {!loading && <ArrowRight size={19} />}
+              </button>
+
+            </form>
+
+            <div className="login-security">
+              <ShieldCheck size={16} />
+              <span>Protected with secure authentication</span>
+            </div>
+
+          </div>
+
+          <p className="login-copyright">
+            © {new Date().getFullYear()} OrderToAudit · All rights reserved
+          </p>
+
+        </section>
       </div>
     </div>
   );

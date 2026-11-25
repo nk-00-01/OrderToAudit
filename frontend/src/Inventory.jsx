@@ -48,7 +48,8 @@ function Inventory({ token }) {
   const [category, setCategory] = useState("All");
 
   const [stockItems, setStockItems] = useState([]);
-  const [movements, setMovements] = useState([]);
+const [movements, setMovements] = useState([]);
+const [lowStockAlerts, setLowStockAlerts] = useState([]);
   const [summary, setSummary] = useState({
     tracked_items: 0,
     raw_materials: 0,
@@ -79,31 +80,39 @@ function Inventory({ token }) {
         Authorization: `Bearer ${token}`,
       };
 
-      const [stockResponse, movementResponse, summaryResponse] =
-        await Promise.all([
-          fetch(`${API_URL}/inventory/stock`, { headers }),
-          fetch(`${API_URL}/inventory/movements?limit=100`, { headers }),
-          fetch(`${API_URL}/inventory/summary`, { headers }),
-        ]);
+      const [
+  stockResponse,
+  movementResponse,
+  summaryResponse,
+  lowStockResponse,
+] = await Promise.all([
+  fetch(`${API_URL}/inventory/stock`, { headers }),
+  fetch(`${API_URL}/inventory/movements?limit=100`, { headers }),
+  fetch(`${API_URL}/inventory/summary`, { headers }),
+  fetch(`${API_URL}/inventory/low-stock`, { headers }),
+]);
 
       if (
         !stockResponse.ok ||
         !movementResponse.ok ||
-        !summaryResponse.ok
+        !summaryResponse.ok ||
+        !lowStockResponse.ok
       ) {
         throw new Error("Unable to retrieve inventory data.");
       }
 
-      const [stockData, movementData, summaryData] =
+      const [stockData, movementData, summaryData,lowStockData,] =
         await Promise.all([
           stockResponse.json(),
           movementResponse.json(),
           summaryResponse.json(),
+           lowStockResponse.json(),
         ]);
 
       setStockItems(stockData.items || []);
       setMovements(movementData.movements || []);
       setSummary(summaryData);
+      setLowStockAlerts(lowStockData.alerts || []);
     } catch (err) {
       console.error("Inventory API error:", err);
       setError(
@@ -155,17 +164,23 @@ function Inventory({ token }) {
     return units[unit] || unit;
   };
 
-  const getDisplayCost = (item) => {
-    if (item.cost !== null && item.cost !== undefined) {
-      return `₹${Number(item.cost).toFixed(2)}`;
-    }
+ const getDisplayCost = (item) => {
+  const cost = item.unit_cost ?? item.cost;
 
-    if (item.sku === "MUR-200") {
-      return "₹19.15*";
-    }
+  if (
+    cost !== null &&
+    cost !== undefined &&
+    Number(cost) > 0
+  ) {
+    return `₹${Number(cost).toFixed(2)}`;
+  }
 
-    return "Not set";
-  };
+  if (item.sku === "MUR-200") {
+    return "₹19.15*";
+  }
+
+  return "Not set";
+};
 
   // Submit form to backend
   const handleSubmit = async (event) => {
@@ -430,6 +445,67 @@ function Inventory({ token }) {
           color="emerald"
         />
       </section>
+{/* Low stock alerts */}
+<section className="rounded-2xl border border-amber-500/20 bg-[#101a2c] p-5 sm:p-6">
+  <div className="mb-5 flex items-center justify-between">
+    <div>
+      <h3 className="font-semibold text-white">
+        Inventory Stock Alerts
+      </h3>
+      <p className="mt-1 text-xs text-slate-500">
+        Materials at or below their minimum stock level
+      </p>
+    </div>
+
+    <span className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+      lowStockAlerts.length > 0
+        ? "bg-amber-500/10 text-amber-400"
+        : "bg-emerald-500/10 text-emerald-400"
+    }`}>
+      {lowStockAlerts.length} Alerts
+    </span>
+  </div>
+
+  {lowStockAlerts.length > 0 ? (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {lowStockAlerts.map((alert) => (
+        <div
+          key={alert.sku}
+          className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.07] bg-white/[0.025] p-4"
+        >
+          <div>
+            <p className="font-medium text-white">
+              {alert.name}
+            </p>
+            <p className="mt-1 font-mono text-xs text-slate-500">
+              {alert.sku}
+            </p>
+            <p className="mt-2 text-xs text-slate-400">
+              Available: {alert.available_quantity} {getDisplayUnit(alert.unit)}
+            </p>
+            <p className="text-xs text-slate-400">
+              Minimum: {alert.minimum_stock} {getDisplayUnit(alert.unit)}
+            </p>
+          </div>
+
+          <span className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold ${
+            alert.status === "OUT_OF_STOCK"
+              ? "bg-red-500/10 text-red-400"
+              : "bg-amber-500/10 text-amber-400"
+          }`}>
+            {alert.status === "OUT_OF_STOCK"
+              ? "Out of Stock"
+              : "Low Stock"}
+          </span>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <p className="rounded-xl bg-emerald-500/5 p-4 text-sm text-emerald-400">
+      All materials are above their minimum stock levels.
+    </p>
+  )}
+</section>
 
       {/* Stock table */}
       <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#101a2c]">

@@ -46,17 +46,3 @@ input {
   background: #101a2c;
   color: white;
 }
-.form-input {
-  width: 100%;
-  background: #0f172a;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  padding: 10px 12px;
-  color: white;
-  font-size: 14px;
-  outline: none;
-}
-
-.form-input:focus {
-  border-color: #3b82f6;
-}

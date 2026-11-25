@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
-
+import "./App.css";
+import { API_URL } from "./config";
 import Inventory from "./Inventory";
 import Production from "./Production";
 import Invoices from "./Invoices";
@@ -38,10 +39,16 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
   CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
+  Legend,
 } from "recharts";
 
 // ================= NAVIGATION =================
@@ -56,7 +63,7 @@ const navigation = [
   { name: "Reports", icon: ChartNoAxesCombined },
 ];
 
-const API_URL = "http://127.0.0.1:8000";
+// const API_URL = "http://127.0.0.1:8000";
 
 // ================= MAIN APP =================
 
@@ -65,7 +72,10 @@ function App() {
   const [auth, setAuth] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
-
+  const [profileOpen, setProfileOpen] = useState(false);
+const [notificationsOpen, setNotificationsOpen] = useState(false);
+const [searchOpen, setSearchOpen] = useState(false);
+const [notificationsRead, setNotificationsRead] = useState(false);
   const [dashboardData, setDashboardData] = useState({});
   const [dashboardLoading, setDashboardLoading] = useState(false);
   const [dashboardError, setDashboardError] = useState("");
@@ -445,7 +455,68 @@ function App() {
             status: batch.status,
           })
         );
+const productionChartData = (
+  dashboardData.production?.batches || []
+)
+  .slice(0, 6)
+  .map((batch) => ({
+    batch: batch.batch_number,
+    planned: Number(batch.planned_output || 0),
+    actual: Number(batch.actual_good_output || 0),
+  }));
 
+const orderStatusData = Object.entries(
+  orderList.reduce((acc, order) => {
+    const status = String(order.status || "PENDING").toUpperCase();
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {})
+).map(([name, value]) => ({ name, value }));
+
+const ORDER_STATUS_COLORS = [
+  "#3b82f6",
+  "#f59e0b",
+  "#10b981",
+  "#8b5cf6",
+  "#ef4444",
+];
+// ================= GLOBAL SEARCH =================
+
+const searchResults = search.trim()
+  ? [
+      ...visibleNavigation
+        .filter((item) =>
+          item.name.toLowerCase().includes(search.toLowerCase())
+        )
+        .map((item) => ({
+          label: item.name,
+          type: "Page",
+          page: item.name,
+        })),
+
+      ...activityRows
+        .filter((row) =>
+          [
+            row.id,
+            row.customer,
+            row.quantity,
+            row.status,
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(search.toLowerCase())
+        )
+        .map((row) => ({
+          label: `${row.id} · ${row.customer}`,
+          type: "Recent record",
+          page: dashboardData.orders
+            ? "Sales Orders"
+            : dashboardData.invoices
+              ? "Invoices"
+              : "Production",
+        })),
+    ].slice(0, 8)
+  : [];
   // ================= INVENTORY SUMMARY =================
 
   const inventoryRows = dashboardData.inventory
@@ -591,15 +662,35 @@ function App() {
 
         <div className="mt-auto space-y-1 border-t border-white/[0.07] p-4">
 
-          <button className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-400 hover:bg-white/[0.04] hover:text-white">
-            <Settings size={19} />
-            Settings
-          </button>
+          <button
+  onClick={() => {
+    setActive("Settings");
+    setSidebarOpen(false);
+  }}
+  className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm ${
+    active === "Settings"
+      ? "bg-blue-600/15 text-blue-400"
+      : "text-slate-400 hover:bg-white/[0.04] hover:text-white"
+  }`}
+>
+  <Settings size={19} />
+  Settings
+</button>
 
-          <button className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-400 hover:bg-white/[0.04] hover:text-white">
-            <HelpCircle size={19} />
-            Help & Support
-          </button>
+          <button
+  onClick={() => {
+    setActive("Help & Support");
+    setSidebarOpen(false);
+  }}
+  className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm ${
+    active === "Help & Support"
+      ? "bg-blue-600/15 text-blue-400"
+      : "text-slate-400 hover:bg-white/[0.04] hover:text-white"
+  }`}
+>
+  <HelpCircle size={19} />
+  Help & Support
+</button>
 
           {/* USER PROFILE */}
 
@@ -668,42 +759,247 @@ function App() {
 
             {/* SEARCH */}
 
-            <div className="hidden items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 sm:flex">
+          {/* FUNCTIONAL GLOBAL SEARCH */}
 
-              <Search size={16} className="text-slate-500" />
+<div className="relative hidden sm:block">
 
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search..."
-                className="w-32 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
-              />
+  <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#101a2c] px-3 py-2 focus-within:border-blue-500/50">
 
-              <span className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-slate-500">
-                /
+    <Search size={16} className="text-slate-400" />
+
+    <input
+      value={search}
+      onChange={(e) => {
+        setSearch(e.target.value);
+        setSearchOpen(true);
+      }}
+      onFocus={() => setSearchOpen(true)}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          setSearchOpen(false);
+          setSearch("");
+        }
+
+        if (e.key === "Enter" && searchResults.length > 0) {
+          setActive(searchResults[0].page);
+          setSearch("");
+          setSearchOpen(false);
+        }
+      }}
+      placeholder="Search pages and records..."
+      className="w-48 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+    />
+
+    {search && (
+      <button
+        onClick={() => {
+          setSearch("");
+          setSearchOpen(false);
+        }}
+        className="text-slate-400 hover:text-white"
+      >
+        <X size={15} />
+      </button>
+    )}
+
+  </div>
+
+  {searchOpen && search.trim() && (
+    <div className="absolute right-0 top-14 z-50 w-80 overflow-hidden rounded-xl border border-white/10 bg-[#101a2c] shadow-2xl">
+
+      <div className="border-b border-white/[0.07] px-4 py-3">
+        <p className="text-xs font-semibold text-slate-400">
+          SEARCH RESULTS
+        </p>
+      </div>
+
+      {searchResults.length > 0 ? (
+        searchResults.map((result, index) => (
+          <button
+            key={`${result.label}-${index}`}
+            onClick={() => {
+              setActive(result.page);
+              setSearch("");
+              setSearchOpen(false);
+              setSidebarOpen(false);
+            }}
+            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-blue-500/10"
+          >
+            <div className="flex items-center gap-3">
+              <Search size={15} className="text-blue-400" />
+              <span className="text-sm text-white">
+                {result.label}
               </span>
-
             </div>
+
+            <span className="text-[10px] text-slate-500">
+              {result.type}
+            </span>
+          </button>
+        ))
+      ) : (
+        <p className="px-4 py-5 text-sm text-slate-500">
+          No matching pages or recent records found.
+        </p>
+      )}
+
+    </div>
+  )}
+
+</div>
 
             {/* NOTIFICATIONS */}
 
-            <button className="relative rounded-xl p-2 text-slate-400 hover:bg-white/[0.05] hover:text-white">
-              <Bell size={19} />
+            {/* NOTIFICATIONS */}
 
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full border-2 border-[#080d19] bg-blue-400" />
+<div className="relative">
+
+  <button
+    onClick={() => {
+      setNotificationsOpen((value) => !value);
+      setProfileOpen(false);
+      setNotificationsRead(true);
+    }}
+    className="relative rounded-xl p-2 text-slate-400 hover:bg-white/[0.05] hover:text-white"
+    title="Notifications"
+  >
+    <Bell size={19} />
+
+    {!notificationsRead && activityRows.length > 0 && (
+      <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full border-2 border-[#080d19] bg-blue-400" />
+    )}
+  </button>
+
+  {notificationsOpen && (
+    <div className="absolute right-0 top-14 z-50 w-80 overflow-hidden rounded-xl border border-white/10 bg-[#101a2c] shadow-2xl">
+
+      <div className="flex items-center justify-between border-b border-white/[0.07] p-4">
+        <h3 className="font-semibold text-white">Recent Activity</h3>
+
+        <button
+          onClick={() => setNotificationsOpen(false)}
+          className="text-slate-400 hover:text-white"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      {activityRows.length > 0 ? (
+        <div className="max-h-80 overflow-y-auto">
+          {activityRows.slice(0, 5).map((row) => (
+            <button
+              key={row.id}
+              onClick={() => {
+                setActive(
+                  dashboardData.orders
+                    ? "Sales Orders"
+                    : dashboardData.invoices
+                      ? "Invoices"
+                      : "Production"
+                );
+                setNotificationsOpen(false);
+              }}
+              className="block w-full border-b border-white/[0.05] px-4 py-3 text-left hover:bg-white/[0.04]"
+            >
+              <p className="text-sm font-medium text-white">{row.id}</p>
+              <p className="mt-1 text-xs text-slate-400">
+                {row.customer} · {row.quantity}
+              </p>
+              <p className="mt-1 text-[10px] text-blue-400">
+                {row.status}
+              </p>
             </button>
+          ))}
+        </div>
+      ) : (
+        <p className="p-5 text-sm text-slate-400">
+          No recent activity available.
+        </p>
+      )}
+
+      <div className="border-t border-white/[0.07] p-3">
+        <button
+          onClick={() => setNotificationsOpen(false)}
+          className="w-full rounded-lg bg-white/[0.04] py-2 text-xs text-slate-300 hover:bg-white/[0.08]"
+        >
+          Close notifications
+        </button>
+      </div>
+
+    </div>
+  )}
+
+</div>
 
             {/* USER AVATAR */}
+{/* USER PROFILE DROPDOWN */}
 
-            <div className="hidden items-center gap-2 border-l border-white/10 pl-4 sm:flex">
+<div className="relative hidden sm:block">
 
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-600 text-xs font-bold text-white">
-                {initials}
-              </div>
+  <button
+    onClick={() => {
+      setProfileOpen((value) => !value);
+      setNotificationsOpen(false);
+    }}
+    className="flex items-center gap-2 border-l border-white/10 pl-4"
+  >
+    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-600 text-xs font-bold text-white">
+      {initials}
+    </div>
 
-              <ChevronDown size={15} className="text-slate-500" />
+    <ChevronDown
+      size={15}
+      className={`text-slate-400 transition-transform ${
+        profileOpen ? "rotate-180" : ""
+      }`}
+    />
+  </button>
 
-            </div>
+  {profileOpen && (
+    <div className="absolute right-0 top-14 z-50 w-60 overflow-hidden rounded-xl border border-white/10 bg-[#101a2c] shadow-2xl">
+
+      <div className="border-b border-white/[0.07] p-4">
+        <p className="truncate text-sm font-semibold text-white">
+          {userName}
+        </p>
+        <p className="mt-1 text-xs text-slate-400">{userRole}</p>
+      </div>
+
+      <button
+        onClick={() => {
+          setActive("Settings");
+          setProfileOpen(false);
+        }}
+        className="w-full px-4 py-3 text-left text-sm text-slate-300 hover:bg-white/[0.05]"
+      >
+        Settings
+      </button>
+
+      <button
+        onClick={() => {
+          setActive("Help & Support");
+          setProfileOpen(false);
+        }}
+        className="w-full px-4 py-3 text-left text-sm text-slate-300 hover:bg-white/[0.05]"
+      >
+        Help & Support
+      </button>
+
+      <button
+        onClick={() => {
+          setProfileOpen(false);
+          handleLogout();
+        }}
+        className="flex w-full items-center gap-2 border-t border-white/[0.07] px-4 py-3 text-left text-sm text-red-400 hover:bg-red-500/10"
+      >
+        <LogOut size={16} />
+        Logout
+      </button>
+
+    </div>
+  )}
+
+</div>
 
           </div>
 
@@ -731,11 +1027,133 @@ function App() {
 
           <Accounts token={auth.token} />
 
-        ) : active === "Reports" ? (
+        )  : active === "Reports" ? (
 
-          <Reports token={auth.token} />
+  <Reports token={auth.token} />
 
-        ) : (
+) : active === "Settings" ? (
+
+  /* ================= SETTINGS PAGE ================= */
+
+  <div className="mx-auto max-w-5xl space-y-6 p-5 sm:p-8">
+
+    <div>
+      <h2 className="text-2xl font-bold text-white">Settings</h2>
+      <p className="mt-1 text-sm text-slate-400">
+        Account information and application preferences.
+      </p>
+    </div>
+
+    <div className="rounded-2xl border border-white/[0.07] bg-[#101a2c] p-6">
+      <h3 className="font-semibold text-white">Account Information</h3>
+
+      <div className="mt-5 grid gap-5 sm:grid-cols-2">
+
+        <div>
+          <p className="text-xs text-slate-500">Full Name</p>
+          <p className="mt-1 text-sm text-white">{userName}</p>
+        </div>
+
+        <div>
+          <p className="text-xs text-slate-500">Role</p>
+          <p className="mt-1 text-sm text-white">{userRole}</p>
+        </div>
+
+        <div>
+          <p className="text-xs text-slate-500">Account Status</p>
+          <p className="mt-1 text-sm text-emerald-400">Logged in</p>
+        </div>
+
+        <div>
+          <p className="text-xs text-slate-500">Application</p>
+          <p className="mt-1 text-sm text-white">OrderToAudit ERP</p>
+        </div>
+
+      </div>
+    </div>
+
+    <div className="rounded-2xl border border-white/[0.07] bg-[#101a2c] p-6">
+      <h3 className="font-semibold text-white">Session</h3>
+
+      <p className="mt-2 text-sm text-slate-400">
+        Manage your current application session.
+      </p>
+
+      <button
+        onClick={handleLogout}
+        className="mt-5 flex items-center gap-2 rounded-xl bg-red-500/10 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-500/20"
+      >
+        <LogOut size={17} />
+        Sign Out
+      </button>
+    </div>
+
+  </div>
+
+) : active === "Help & Support" ? (
+
+  /* ================= HELP PAGE ================= */
+
+  <div className="mx-auto max-w-5xl space-y-6 p-5 sm:p-8">
+
+    <div>
+      <h2 className="text-2xl font-bold text-white">Help & Support</h2>
+      <p className="mt-1 text-sm text-slate-400">
+        Quick guidance for using OrderToAudit ERP.
+      </p>
+    </div>
+
+    {[
+      {
+        title: "Inventory Management",
+        description: "View stock levels, record purchases and manage inventory movements."
+      },
+      {
+        title: "Production Management",
+        description: "Create production batches, record material consumption and monitor output."
+      },
+      {
+        title: "Sales Orders",
+        description: "Create customer orders, review order details and manage approvals."
+      },
+      {
+        title: "Invoices",
+        description: "View generated invoices and download invoice PDFs."
+      },
+      {
+        title: "Accounts",
+        description: "Record customer payments and review financial transactions."
+      },
+      {
+        title: "Reports",
+        description: "Review business performance, material variance and export supported tables to Excel."
+      }
+    ].map((item) => (
+
+      <div
+        key={item.title}
+        className="rounded-xl border border-white/[0.07] bg-[#101a2c] p-5"
+      >
+        <h3 className="font-semibold text-white">{item.title}</h3>
+        <p className="mt-2 text-sm leading-6 text-slate-400">
+          {item.description}
+        </p>
+      </div>
+
+    ))}
+
+    <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-5">
+      <h3 className="font-semibold text-blue-300">Need assistance?</h3>
+      <p className="mt-2 text-sm text-slate-300">
+        For account access or application issues, contact your system administrator.
+        Include the page name and a description of the issue.
+      </p>
+    </div>
+
+  </div>
+
+) : (
+
 
           /* ================= DASHBOARD ================= */
 
@@ -855,104 +1273,139 @@ function App() {
 
               <div className="rounded-2xl border border-white/[0.07] bg-[#101a2c] p-7 xl:col-span-2">
 
-                <div className="mb-6">
-                  <h3 className="font-semibold text-white">
-                    {dashboardData.orders
-                      ? "Order Quantity Overview"
-                      : "Production Output Overview"}
-                  </h3>
+<div className="mb-6">
+  <h3 className="font-semibold text-white">
+    {dashboardData.production
+      ? "Planned vs Actual Production"
+      : "Order Quantity Overview"}
+  </h3>
 
-                  <p className="mt-1 text-xs text-slate-500">
-                    {dashboardData.orders
-                      ? "Packet quantities from recorded customer orders"
-                      : "Good packets recorded in production batches"}
-                  </p>
-                </div>
+  <p className="mt-1 text-xs text-slate-500">
+    {dashboardData.production
+      ? "Comparison of planned and actual output by batch"
+      : "Packet quantities from recorded customer orders"}
+  </p>
+</div>
 
-                {chartData.length > 0 ? (
+                {productionChartData.length > 0 ? (
 
-                  <div className="h-[300px] w-full">
+  <div className="h-[300px] w-full">
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={productionChartData}>
+        <CartesianGrid
+          stroke="#263247"
+          strokeDasharray="3 3"
+          vertical={false}
+        />
 
-                    <ResponsiveContainer width="100%" height="100%">
+        <XAxis
+          dataKey="batch"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fill: "#64748b", fontSize: 11 }}
+          dy={10}
+        />
 
-                      <AreaChart data={chartData}>
+        <YAxis
+          axisLine={false}
+          tickLine={false}
+          tick={{ fill: "#64748b", fontSize: 11 }}
+        />
 
-                        <defs>
-                          <linearGradient
-                            id="liveDashboardGradient"
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                          >
-                            <stop
-                              offset="0%"
-                              stopColor="#3b82f6"
-                              stopOpacity={0.3}
-                            />
+        <Tooltip
+          contentStyle={{
+            background: "#172338",
+            border: "1px solid #334155",
+            borderRadius: "12px",
+            color: "#fff",
+          }}
+          formatter={(value) => [`${value} packets`]}
+        />
 
-                            <stop
-                              offset="95%"
-                              stopColor="#3b82f6"
-                              stopOpacity={0}
-                            />
-                          </linearGradient>
-                        </defs>
+        <Legend />
 
-                        <CartesianGrid
-                          stroke="#263247"
-                          strokeDasharray="3 3"
-                          vertical={false}
-                        />
+        <Bar
+          dataKey="planned"
+          name="Planned Output"
+          fill="#64748b"
+          radius={[5, 5, 0, 0]}
+        />
 
-                        <XAxis
-                          dataKey="label"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fill: "#64748b", fontSize: 11 }}
-                          dy={10}
-                        />
+        <Bar
+          dataKey="actual"
+          name="Actual Output"
+          fill="#3b82f6"
+          radius={[5, 5, 0, 0]}
+        />
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
 
-                        <YAxis
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fill: "#64748b", fontSize: 11 }}
-                        />
+) : chartData.length > 0 ? (
 
-                        <Tooltip
-                          contentStyle={{
-                            background: "#172338",
-                            border: "1px solid #334155",
-                            borderRadius: "12px",
-                            color: "#fff",
-                          }}
-                          formatter={(value) => [
-                            `${value} packets`,
-                            "Quantity",
-                          ]}
-                        />
+  <div className="h-[300px] w-full">
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart data={chartData}>
+        <defs>
+          <linearGradient
+            id="liveDashboardGradient"
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+          >
+            <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+          </linearGradient>
+        </defs>
 
-                        <Area
-                          type="monotone"
-                          dataKey="quantity"
-                          stroke="#3b82f6"
-                          strokeWidth={2.5}
-                          fill="url(#liveDashboardGradient)"
-                        />
+        <CartesianGrid
+          stroke="#263247"
+          strokeDasharray="3 3"
+          vertical={false}
+        />
 
-                      </AreaChart>
+        <XAxis
+          dataKey="label"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fill: "#64748b", fontSize: 11 }}
+          dy={10}
+        />
 
-                    </ResponsiveContainer>
+        <YAxis
+          axisLine={false}
+          tickLine={false}
+          tick={{ fill: "#64748b", fontSize: 11 }}
+        />
 
-                  </div>
+        <Tooltip
+          contentStyle={{
+            background: "#172338",
+            border: "1px solid #334155",
+            borderRadius: "12px",
+            color: "#fff",
+          }}
+        />
 
-                ) : (
+        <Area
+          type="monotone"
+          dataKey="quantity"
+          stroke="#3b82f6"
+          strokeWidth={2.5}
+          fill="url(#liveDashboardGradient)"
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  </div>
 
-                  <div className="flex h-[300px] items-center justify-center text-sm text-slate-500">
-                    Sales or production chart data is not available for this role.
-                  </div>
+) : (
 
-                )}
+  <div className="flex h-[300px] items-center justify-center text-sm text-slate-500">
+    No chart data is available for this role.
+  </div>
+
+)}
 
               </div>
 
@@ -1012,6 +1465,63 @@ function App() {
               </div>
 
             </section>
+{/* ORDER STATUS CHART */}
+
+{dashboardData.orders && (
+  <section className="rounded-2xl border border-white/[0.07] bg-[#101a2c] p-7">
+
+    <div className="mb-5">
+      <h3 className="font-semibold text-white">
+        Order Status Distribution
+      </h3>
+      <p className="mt-1 text-xs text-slate-500">
+        Breakdown of customer orders by current status
+      </p>
+    </div>
+
+    {orderStatusData.length > 0 ? (
+      <div className="h-[280px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={orderStatusData}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              innerRadius={65}
+              outerRadius={100}
+              paddingAngle={4}
+            >
+              {orderStatusData.map((entry, index) => (
+                <Cell
+                  key={entry.name}
+                  fill={ORDER_STATUS_COLORS[index % ORDER_STATUS_COLORS.length]}
+                />
+              ))}
+            </Pie>
+
+            <Tooltip
+              contentStyle={{
+                background: "#172338",
+                border: "1px solid #334155",
+                borderRadius: "12px",
+                color: "#fff",
+              }}
+            />
+
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+    ) : (
+      <p className="py-12 text-center text-sm text-slate-500">
+        No order status data available.
+      </p>
+    )}
+
+  </section>
+)}
 
             {/* RECENT ACTIVITY + PRODUCTION */}
 

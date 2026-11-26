@@ -253,7 +253,7 @@ function Inventory({ token }) {
         };
 
         if (!payload.sku) {
-          throw new Error("Select an invetory item.");
+          throw new Error("Select an inventory item.");
         }
 
         if (payload.quantity <= 0) {
@@ -785,23 +785,6 @@ const adjustmentItems = [
             <form onSubmit={handleSubmit} className="space-y-4 p-5 sm:p-6">
               {activeAction === "material" && (
                 <>
-                  <FormField label="Select Inventory Item">
-  <select
-    required
-    value={form.sku}
-    onChange={(e) => updateForm("sku", e.target.value)}
-    className="form-input"
-  >
-    <option value="">Choose an inventory item</option>
-
-    {adjustmentItems.map((item) => (
-  <option key={item.sku} value={item.sku}>
-    {item.name} ({item.sku}) — {item.quantity} {item.unit}
-  </option>
-))}
-  </select>
-</FormField>
-
                   <FormField label="Material SKU">
                     <input
                       required
@@ -850,7 +833,7 @@ const adjustmentItems = [
                       className="form-input"
                     >
                       <option value="">Choose a material</option>
-                      {adjustmentItems.map((item) => (
+                      {materialItems.map((item) => (
   <option key={item.sku} value={item.sku}>
     {item.name} ({item.sku}) — {item.quantity} {item.unit}
   </option>
@@ -923,15 +906,15 @@ const adjustmentItems = [
 
               {activeAction === "adjustment" && (
                 <>
-                  <FormField label="Select Material">
+                  <FormField label="Select Inventory Item">
                     <select
                       required
                       value={form.sku}
                       onChange={(e) => updateForm("sku", e.target.value)}
                       className="form-input"
                     >
-                      <option value="">Choose a material</option>
-                      {materialItems.map((item) => (
+                      <option value="">Choose an inventory item</option>
+                      {adjustmentItems.map((item) => (
                         <option key={item.sku} value={item.sku}>
                           {item.name} ({item.sku}) — {item.quantity} {item.unit}
                         </option>

@@ -35,7 +35,7 @@ from auth import (
     require_roles
 )
 
-from database import engine, get_db
+from database import get_db, Base, engine
 from models import (
     User,
     Product,
@@ -53,6 +53,7 @@ from models import (
     ProductionBatch,
     AuditLog
 )
+Base.metadata.create_all(bind=engine)
 class MaterialCreate(BaseModel):
     sku: str = Field(min_length=2, max_length=50)
     name: str = Field(min_length=2, max_length=120)

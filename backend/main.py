@@ -32,10 +32,11 @@ from auth import (
     verify_password,
     create_access_token,
     get_current_user,
-    require_roles
+    require_roles,
+    hash_password
 )
 
-from database import get_db, Base, engine
+from database import get_db, Base, engine,SessionLocal
 from models import (
     User,
     Product,
@@ -122,7 +123,69 @@ app = FastAPI(
     description="Backend API for our food manufacturing management system",
     version="1.0.0"
 )
+@app.on_event("startup")
+def initialize_production_owner():
+    import os
 
+    owner_email = os.getenv("OWNER_EMAIL")
+    owner_password = os.getenv("OWNER_PASSWORD")
+
+    if not owner_email or not owner_password:
+        print("OWNER_EMAIL or OWNER_PASSWORD is missing.")
+        return
+
+    db = SessionLocal()
+
+    try:
+        roles = [
+            "Owner",
+            "Admin",
+            "Salesman",
+            "Production Supervisor",
+            "Accountant/Auditor",
+        ]
+
+        for role_name in roles:
+            role = db.query(Role).filter(
+                Role.name == role_name
+            ).first()
+
+            if not role:
+                db.add(Role(name=role_name))
+
+        db.commit()
+
+        owner_role = db.query(Role).filter(
+            Role.name == "Owner"
+        ).first()
+
+        owner = db.query(User).filter(
+            User.email == owner_email
+        ).first()
+
+        if not owner:
+            owner = User(
+                full_name="Owner",
+                email=owner_email,
+                password_hash=hash_password(owner_password),
+                role_id=owner_role.id,
+                is_active=True,
+            )
+
+            db.add(owner)
+            db.commit()
+
+            print("Production Owner account created successfully.")
+        else:
+            print("Production Owner account already exists.")
+
+    except Exception as error:
+        db.rollback()
+        print("Owner initialization failed:", error)
+        raise
+
+    finally:
+        db.close()
 # Allow React frontend to communicate with FastAPI
 app.add_middleware(
     CORSMiddleware,

@@ -441,6 +441,7 @@ def record_inventory_purchase(
         db.rollback()
         raise
 
+
 @app.post(
     "/inventory/adjustments",
     status_code=201,
@@ -453,24 +454,61 @@ def adjust_inventory_stock(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    sku = data.sku.strip().upper()
+    reference = data.reference.strip()
+
+    check_reference(db, reference)
+
+    # First check raw materials
     material = db.query(RawMaterial).filter(
-        RawMaterial.sku == data.sku.strip().upper()
+        RawMaterial.sku == sku
     ).with_for_update().first()
 
+    product = None
+
     if not material:
+        # If not a raw material, check finished goods
+        product = db.query(Product).filter(
+            Product.sku == sku
+        ).with_for_update().first()
+
+    if not material and not product:
         raise HTTPException(
             status_code=404,
-            detail="Raw material not found."
+            detail="Material or finished product not found."
         )
 
-    check_reference(db, data.reference.strip())
+    # Calculate current stock
+    if material:
+        current_stock = get_material_stock(db, material.id)
+        item_name = material.name
+        item_unit = material.unit
+        raw_material_id = material.id
+        product_id = None
 
-    current_stock = get_material_stock(db, material.id)
+    else:
+        movements = db.query(StockMovement).filter(
+            StockMovement.product_id == product.id
+        ).all()
+
+        current_stock = sum(
+            (m.quantity_in or Decimal("0")) -
+            (m.quantity_out or Decimal("0"))
+            for m in movements
+        )
+
+        item_name = product.name
+        item_unit = product.unit
+        raw_material_id = None
+        product_id = product.id
 
     if data.direction == "OUT" and data.quantity > current_stock:
         raise HTTPException(
             status_code=400,
-            detail=f"Insufficient stock. Available quantity: {current_stock} {material.unit}"
+            detail=(
+                f"Insufficient stock. Available quantity: "
+                f"{current_stock} {item_unit}"
+            )
         )
 
     quantity_in = (
@@ -483,18 +521,16 @@ def adjust_inventory_stock(
         else Decimal("0")
     )
 
+    new_stock = current_stock + quantity_in - quantity_out
+
     movement = StockMovement(
-        raw_material_id=material.id,
-        product_id=None,
+        raw_material_id=raw_material_id,
+        product_id=product_id,
         movement_type="ADJUSTMENT",
         quantity_in=quantity_in,
         quantity_out=quantity_out,
-        reference=data.reference.strip(),
+        reference=reference,
         notes=data.notes
-    )
-
-    new_stock = (
-        current_stock + quantity_in - quantity_out
     )
 
     try:
@@ -508,15 +544,18 @@ def adjust_inventory_stock(
             module="Inventory",
             entity_type="StockMovement",
             entity_id=movement.id,
-            description=f"Stock adjusted for {material.name}",
+            description=f"Stock adjusted for {item_name}",
             details={
-                "sku": material.sku,
-                "material": material.name,
+                "sku": sku,
+                "item": item_name,
+                "item_type": (
+                    "Raw Material" if material else "Finished Good"
+                ),
                 "direction": data.direction,
                 "quantity": str(data.quantity),
                 "previous_stock": str(current_stock),
                 "new_stock": str(new_stock),
-                "reference": data.reference.strip()
+                "reference": reference
             }
         )
 
@@ -524,8 +563,8 @@ def adjust_inventory_stock(
 
         return {
             "message": "Stock adjustment recorded successfully.",
-            "reference": data.reference,
-            "material": material.name,
+            "reference": reference,
+            "item": item_name,
             "direction": data.direction,
             "quantity": float(data.quantity),
             "current_stock": float(new_stock)

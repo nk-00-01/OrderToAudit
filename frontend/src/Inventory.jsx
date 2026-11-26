@@ -229,8 +229,8 @@ function Inventory({ token }) {
         };
 
         if (!payload.sku) {
-          throw new Error("Select a material.");
-        }
+  throw new Error("Select an inventory item.");
+}
 
         if (payload.quantity <= 0 || payload.unit_cost <= 0) {
           throw new Error("Quantity and unit cost must be greater than zero.");
@@ -302,9 +302,24 @@ function Inventory({ token }) {
 
   // Only raw materials and packaging can be selected for purchases/adjustments
   const materialItems = stockItems.filter(
-    (item) => item.category === "Raw Material" || item.category === "Packaging",
-  );
+  (item) =>
+    item.category === "Raw Material" ||
+    item.category === "Packaging",
+);
 
+const finishedGoodItem = stockItems.find(
+  (item) => item.sku === "MUR-200"
+);
+
+const adjustmentItems = [
+  ...materialItems,
+  {
+    sku: "MUR-200",
+    name: "Murukku 200g",
+    quantity: finishedGoodItem?.quantity ?? 0,
+    unit: finishedGoodItem?.unit || "packet",
+  },
+];
   const filteredItems = stockItems.filter((item) => {
     const matchesSearch =
       item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -769,7 +784,7 @@ function Inventory({ token }) {
             <form onSubmit={handleSubmit} className="space-y-4 p-5 sm:p-6">
               {activeAction === "material" && (
                 <>
-                  <FormField label="Material SKU">
+                  <FormField label="Select Inventory Item">
                     <input
                       required
                       value={form.sku}
@@ -830,11 +845,11 @@ function Inventory({ token }) {
                       className="form-input"
                     >
                       <option value="">Choose a material</option>
-                      {materialItems.map((item) => (
-                        <option key={item.sku} value={item.sku}>
-                          {item.name} ({item.sku})
-                        </option>
-                      ))}
+                      {adjustmentItems.map((item) => (
+  <option key={item.sku} value={item.sku}>
+    {item.name} ({item.sku}) — {item.quantity} {item.unit}
+  </option>
+))}
                     </select>
                   </FormField>
 

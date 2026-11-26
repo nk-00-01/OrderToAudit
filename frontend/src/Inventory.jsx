@@ -253,7 +253,7 @@ function Inventory({ token }) {
         };
 
         if (!payload.sku) {
-          throw new Error("Select a material.");
+          throw new Error("Select an invetory item.");
         }
 
         if (payload.quantity <= 0) {
@@ -795,19 +795,19 @@ const adjustmentItems = [
     <option value="">Choose an inventory item</option>
 
     {adjustmentItems.map((item) => (
-      <option key={item.sku} value={item.sku}>
-        {item.name} ({item.sku}) — {item.quantity} {item.unit}
-      </option>
-    ))}
+  <option key={item.sku} value={item.sku}>
+    {item.name} ({item.sku}) — {item.quantity} {item.unit}
+  </option>
+))}
   </select>
 </FormField>
 
-                  <FormField label="Material Name">
+                  <FormField label="Material SKU">
                     <input
                       required
-                      value={form.name}
-                      onChange={(e) => updateForm("name", e.target.value)}
-                      placeholder="Enter material name"
+                      value={form.sku}
+                      onChange={(e) => updateForm("sku", e.target.value)}
+                      placeholder="Example: RAW-FLOUR"
                       className="form-input"
                     />
                   </FormField>

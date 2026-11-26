@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   RefreshCw,
@@ -14,7 +13,7 @@ import {
   Boxes,
 } from "lucide-react";
 import * as XLSX from "xlsx";
-const API = "http://127.0.0.1:8000";
+const API = "https://ordertoaudit-backend.onrender.com";
 
 export default function Reports({ token }) {
   const [report, setReport] = useState(null);
@@ -49,30 +48,20 @@ export default function Reports({ token }) {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          })
-        )
+          }),
+        ),
       );
 
-      const failedResponse = responses.find(
-        (response) => !response.ok
-      );
+      const failedResponse = responses.find((response) => !response.ok);
 
       if (failedResponse) {
         throw new Error(
-          `Report API Error: ${failedResponse.status} (${failedResponse.url})`
+          `Report API Error: ${failedResponse.status} (${failedResponse.url})`,
         );
       }
 
-      const [
-        inventory,
-        stock,
-        production,
-        sales,
-        invoice,
-        accounts,
-      ] = await Promise.all(
-        responses.map((response) => response.json())
-      );
+      const [inventory, stock, production, sales, invoice, accounts] =
+        await Promise.all(responses.map((response) => response.json()));
 
       setReport({
         inventory,
@@ -93,40 +82,40 @@ export default function Reports({ token }) {
   useEffect(() => {
     fetchReports();
   }, [token]);
-const downloadBusinessReport = async () => {
-  try {
-    setPdfLoading(true);
+  const downloadBusinessReport = async () => {
+    try {
+      setPdfLoading(true);
 
-    const response = await fetch(`${API}/reports/business/pdf`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+      const response = await fetch(`${API}/reports/business/pdf`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error("Unable to download business report.");
+      if (!response.ok) {
+        throw new Error("Unable to download business report.");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "Business_Performance_Report.pdf";
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF download error:", err);
+      alert(err.message || "PDF download failed.");
+    } finally {
+      setPdfLoading(false);
     }
-
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "Business_Performance_Report.pdf";
-
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    window.URL.revokeObjectURL(url);
-  } catch (err) {
-    console.error("PDF download error:", err);
-    alert(err.message || "PDF download failed.");
-  } finally {
-    setPdfLoading(false);
-  }
-};
+  };
   const money = (value) =>
     `₹${Number(value || 0).toLocaleString("en-IN", {
       minimumFractionDigits: 2,
@@ -173,14 +162,7 @@ const downloadBusinessReport = async () => {
     );
   }
 
-  const {
-    inventory,
-    stock,
-    production,
-    sales,
-    invoice,
-    accounts,
-  } = report;
+  const { inventory, stock, production, sales, invoice, accounts } = report;
 
   const summary = accounts.summary || {};
   const batches = production.batches || [];
@@ -189,68 +171,66 @@ const downloadBusinessReport = async () => {
   const stockItems = stock.items || [];
 
   const rawMaterials = stockItems.filter(
-    (item) => item.category === "Raw Material"
+    (item) => item.category === "Raw Material",
   );
 
   const packagingItems = stockItems.filter(
-    (item) => item.category === "Packaging"
+    (item) => item.category === "Packaging",
   );
 
   const finishedGoods = stockItems.filter(
-    (item) => item.category === "Finished Goods"
+    (item) => item.category === "Finished Goods",
   );
 
   const zeroStockItems = stockItems.filter(
-    (item) => Number(item.quantity) <= 0
+    (item) => Number(item.quantity) <= 0,
   );
   const inventoryExcelRows = stockItems.map((item) => ({
-  SKU: item.sku,
-  "Item Name": item.name,
-  Category: item.category,
-  "Available Stock": Number(item.quantity || 0),
-  Unit: item.unit,
-  "Unit Cost": item.cost == null ? "Not set" : Number(item.cost),
-  Status: Number(item.quantity) <= 0
-    ? "Out of Stock"
-    : "Available",
-}));
-const varianceExcelRows = batches.flatMap((batch) =>
-  (batch.materials || []).map((material) => ({
+    SKU: item.sku,
+    "Item Name": item.name,
+    Category: item.category,
+    "Available Stock": Number(item.quantity || 0),
+    Unit: item.unit,
+    "Unit Cost": item.cost == null ? "Not set" : Number(item.cost),
+    Status: Number(item.quantity) <= 0 ? "Out of Stock" : "Available",
+  }));
+  const varianceExcelRows = batches.flatMap((batch) =>
+    (batch.materials || []).map((material) => ({
+      "Batch Number": batch.batch_number,
+      Product: batch.product,
+      Material: material.material,
+      "Standard Usage": Number(material.standard_usage || 0),
+      "Actual Usage": Number(material.actual_usage || 0),
+      Unit: material.unit,
+      Variance: Number(material.variance || 0),
+      "Variance Percentage": Number(material.variance_percent || 0),
+      Status:
+        Number(material.variance || 0) > 0
+          ? "Excess Usage"
+          : Number(material.variance || 0) < 0
+            ? "Lower Usage"
+            : "On Standard",
+    })),
+  );
+  const productionExcelRows = batches.map((batch) => ({
     "Batch Number": batch.batch_number,
     Product: batch.product,
-    Material: material.material,
-    "Standard Usage": Number(material.standard_usage || 0),
-    "Actual Usage": Number(material.actual_usage || 0),
-    Unit: material.unit,
-    Variance: Number(material.variance || 0),
-    "Variance Percentage": Number(material.variance_percent || 0),
-    Status:
-      Number(material.variance || 0) > 0
-        ? "Excess Usage"
-        : Number(material.variance || 0) < 0
-        ? "Lower Usage"
-        : "On Standard",
-  }))
-);
-const productionExcelRows = batches.map((batch) => ({
-  "Batch Number": batch.batch_number,
-  Product: batch.product,
-  "Planned Output": Number(batch.planned_output || 0),
-  "Actual Good Output": Number(batch.actual_good_output || 0),
-  "Yield Variance (%)": Number(batch.yield_variance_percent || 0),
-  Status: batch.status,
-}));
-const salesExcelRows = orders.map((order) => ({
-  "Order Number": order.order_number,
-  Customer: order.customer || "Not available",
-  Product: order.product || "Not available",
-  Ordered: Number(order.quantity || 0),
-  "Available Quantity": Number(order.available_quantity || 0),
-  Dispatched: Number(order.dispatched_quantity || 0),
-  Shortage: Number(order.shortage || 0),
-  Status: String(order.status || "").toUpperCase(),
-  "Created At": formatDate(order.created_at),
-}));
+    "Planned Output": Number(batch.planned_output || 0),
+    "Actual Good Output": Number(batch.actual_good_output || 0),
+    "Yield Variance (%)": Number(batch.yield_variance_percent || 0),
+    Status: batch.status,
+  }));
+  const salesExcelRows = orders.map((order) => ({
+    "Order Number": order.order_number,
+    Customer: order.customer || "Not available",
+    Product: order.product || "Not available",
+    Ordered: Number(order.quantity || 0),
+    "Available Quantity": Number(order.available_quantity || 0),
+    Dispatched: Number(order.dispatched_quantity || 0),
+    Shortage: Number(order.shortage || 0),
+    Status: String(order.status || "").toUpperCase(),
+    "Created At": formatDate(order.created_at),
+  }));
 
   const totalGST = invoices.reduce(
     (sum, item) =>
@@ -258,32 +238,32 @@ const salesExcelRows = orders.map((order) => ({
       Number(item.cgst_amount || 0) +
       Number(item.sgst_amount || 0) +
       Number(item.igst_amount || 0),
-    0
+    0,
   );
 
   const taxableValue = invoices.reduce(
     (sum, item) => sum + Number(item.taxable_amount || 0),
-    0
+    0,
   );
 
   const totalCGST = invoices.reduce(
     (sum, item) => sum + Number(item.cgst_amount || 0),
-    0
+    0,
   );
 
   const totalSGST = invoices.reduce(
     (sum, item) => sum + Number(item.sgst_amount || 0),
-    0
+    0,
   );
 
   const plannedOutput = batches.reduce(
     (sum, batch) => sum + Number(batch.planned_output || 0),
-    0
+    0,
   );
 
   const actualOutput = batches.reduce(
     (sum, batch) => sum + Number(batch.actual_good_output || 0),
-    0
+    0,
   );
 
   const yieldVariance = plannedOutput
@@ -291,34 +271,33 @@ const salesExcelRows = orders.map((order) => ({
     : 0;
 
   // Sales order calculations
-  const getOrderStatus = (order) =>
-    String(order.status || "").toUpperCase();
+  const getOrderStatus = (order) => String(order.status || "").toUpperCase();
 
   const dispatchedOrders = orders.filter(
-    (order) => getOrderStatus(order) === "DISPATCHED"
+    (order) => getOrderStatus(order) === "DISPATCHED",
   ).length;
 
   const pendingOrders = orders.filter(
-    (order) => getOrderStatus(order) === "PENDING"
+    (order) => getOrderStatus(order) === "PENDING",
   ).length;
 
   const approvedOrders = orders.filter(
-    (order) => getOrderStatus(order) === "APPROVED"
+    (order) => getOrderStatus(order) === "APPROVED",
   ).length;
 
   const totalOrderedQuantity = orders.reduce(
     (sum, order) => sum + Number(order.quantity || 0),
-    0
+    0,
   );
 
   const totalDispatchedQuantity = orders.reduce(
     (sum, order) => sum + Number(order.dispatched_quantity || 0),
-    0
+    0,
   );
 
   const totalShortage = orders.reduce(
     (sum, order) => sum + Number(order.shortage || 0),
-    0
+    0,
   );
 
   const getStatusStyle = (status) => {
@@ -337,62 +316,53 @@ const salesExcelRows = orders.map((order) => ({
     }
   };
   const exportExcel = (rows, fileName, sheetName) => {
-  if (!rows || rows.length === 0) {
-    alert("No data available to export.");
-    return;
-  }
+    if (!rows || rows.length === 0) {
+      alert("No data available to export.");
+      return;
+    }
 
-  const worksheet = XLSX.utils.json_to_sheet(rows);
-  const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(
-    workbook,
-    worksheet,
-    sheetName
-  );
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
 
-  XLSX.writeFile(workbook, fileName);
-};
+    XLSX.writeFile(workbook, fileName);
+  };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-white">Business Reports</h2>
+          <p className="text-sm text-slate-400 mt-1">
+            Unified business performance and financial overview
+          </p>
+        </div>
 
-     {/* Header */}
-<div className="flex flex-wrap justify-between items-center gap-4">
-  <div>
-    <h2 className="text-xl font-semibold text-white">
-      Business Reports
-    </h2>
-    <p className="text-sm text-slate-400 mt-1">
-      Unified business performance and financial overview
-    </p>
-  </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={downloadBusinessReport}
+            disabled={pdfLoading}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm"
+          >
+            <FileText size={16} />
+            {pdfLoading ? "Downloading..." : "Download PDF"}
+          </button>
 
-  <div className="flex flex-wrap items-center gap-3">
-    <button
-      onClick={downloadBusinessReport}
-      disabled={pdfLoading}
-      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm"
-    >
-      <FileText size={16} />
-      {pdfLoading ? "Downloading..." : "Download PDF"}
-    </button>
-
-    <button
-      onClick={fetchReports}
-      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm"
-    >
-      <RefreshCw size={16} />
-      Refresh Reports
-    </button>
-  </div>
-</div>
+          <button
+            onClick={fetchReports}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm"
+          >
+            <RefreshCw size={16} />
+            Refresh Reports
+          </button>
+        </div>
+      </div>
 
       {/* Business Overview */}
       <section className="space-y-3">
-        <h3 className="text-white font-semibold">
-          Business Overview
-        </h3>
+        <h3 className="text-white font-semibold">Business Overview</h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <ReportCard
@@ -427,37 +397,37 @@ const salesExcelRows = orders.map((order) => ({
 
       {/* Inventory Report */}
       <section className="bg-slate-900/70 border border-slate-800 rounded-xl p-5 space-y-5">
-
         <div className="flex flex-wrap justify-between items-center gap-3">
           <div>
-            <h3 className="text-white font-semibold">
-              Inventory Report
-            </h3>
+            <h3 className="text-white font-semibold">Inventory Report</h3>
             <p className="text-xs text-slate-400 mt-1">
               Current stock position across all inventory categories
             </p>
           </div>
 
-         <div className="flex flex-wrap items-center gap-3">
-  <button
-    onClick={() => exportExcel(
-      inventoryExcelRows,
-      "Inventory_Report.xlsx",
-      "Inventory"
-    )}
-    className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-sm">
-    <FileSpreadsheet size={16} />
-    Export Excel
-  </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() =>
+                exportExcel(
+                  inventoryExcelRows,
+                  "Inventory_Report.xlsx",
+                  "Inventory",
+                )
+              }
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-sm"
+            >
+              <FileSpreadsheet size={16} />
+              Export Excel
+            </button>
 
-  <div className="flex items-center gap-2 text-blue-400">
-    <Boxes size={20} />
-    <span className="text-sm">
-      {stock.total_items ?? stockItems.length} Items
-    </span>
-  </div>
-</div>
-</div>
+            <div className="flex items-center gap-2 text-blue-400">
+              <Boxes size={20} />
+              <span className="text-sm">
+                {stock.total_items ?? stockItems.length} Items
+              </span>
+            </div>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <GSTCard
@@ -478,10 +448,7 @@ const salesExcelRows = orders.map((order) => ({
 
         {zeroStockItems.length > 0 && (
           <div className="flex items-start gap-3 p-4 rounded-lg border border-amber-500/30 bg-amber-500/10">
-            <AlertTriangle
-              size={20}
-              className="text-amber-400 mt-0.5"
-            />
+            <AlertTriangle size={20} className="text-amber-400 mt-0.5" />
 
             <div>
               <p className="text-amber-300 font-semibold text-sm">
@@ -489,8 +456,7 @@ const salesExcelRows = orders.map((order) => ({
               </p>
 
               <p className="text-slate-300 text-sm mt-1">
-                {zeroStockItems.length} item(s) currently have zero stock:
-                {" "}
+                {zeroStockItems.length} item(s) currently have zero stock:{" "}
                 {zeroStockItems.map((item) => item.name).join(", ")}.
               </p>
             </div>
@@ -517,27 +483,23 @@ const salesExcelRows = orders.map((order) => ({
 
                 return (
                   <tr key={item.sku} className="hover:bg-slate-800/40">
-                    <td className="px-4 py-3 text-blue-400">
-                      {item.sku}
-                    </td>
+                    <td className="px-4 py-3 text-blue-400">{item.sku}</td>
 
-                    <td className="px-4 py-3 text-white">
-                      {item.name}
-                    </td>
+                    <td className="px-4 py-3 text-white">{item.name}</td>
 
                     <td className="px-4 py-3 text-slate-300">
                       {item.category}
                     </td>
 
-                    <td className={`px-4 py-3 font-semibold ${
-                      isOutOfStock ? "text-red-400" : "text-white"
-                    }`}>
+                    <td
+                      className={`px-4 py-3 font-semibold ${
+                        isOutOfStock ? "text-red-400" : "text-white"
+                      }`}
+                    >
                       {Number(item.quantity).toLocaleString("en-IN")}
                     </td>
 
-                    <td className="px-4 py-3 text-slate-300">
-                      {item.unit}
-                    </td>
+                    <td className="px-4 py-3 text-slate-300">{item.unit}</td>
 
                     <td className="px-4 py-3 text-slate-300">
                       {item.cost == null ? "Not set" : money(item.cost)}
@@ -572,9 +534,7 @@ const salesExcelRows = orders.map((order) => ({
 
       {/* Financial Overview */}
       <section className="space-y-3">
-        <h3 className="text-white font-semibold">
-          Financial Overview
-        </h3>
+        <h3 className="text-white font-semibold">Financial Overview</h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <ReportCard
@@ -582,8 +542,8 @@ const salesExcelRows = orders.map((order) => ({
             value={money(
               invoices.reduce(
                 (sum, item) => sum + Number(item.total_amount || 0),
-                0
-              )
+                0,
+              ),
             )}
             icon={<IndianRupee size={20} />}
             color="blue"
@@ -614,9 +574,7 @@ const salesExcelRows = orders.map((order) => ({
 
       {/* GST Report */}
       <section className="bg-slate-900/70 border border-slate-800 rounded-xl p-5 space-y-4">
-        <h3 className="text-white font-semibold">
-          GST Summary
-        </h3>
+        <h3 className="text-white font-semibold">GST Summary</h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <GSTCard label="Taxable Value" value={money(taxableValue)} />
@@ -627,261 +585,277 @@ const salesExcelRows = orders.map((order) => ({
       </section>
 
       {/* Material Variance Report */}
-  {/* Material Variance Report */}
-<section className="bg-slate-900/70 border border-slate-800 rounded-xl p-5 space-y-5">
+      {/* Material Variance Report */}
+      <section className="bg-slate-900/70 border border-slate-800 rounded-xl p-5 space-y-5">
+        <div className="flex flex-wrap justify-between items-center gap-3">
+          <div>
+            <h3 className="text-white font-semibold">
+              Material Variance Report
+            </h3>
+            <p className="text-xs text-slate-400 mt-1">
+              Standard material consumption compared with actual consumption
+            </p>
+          </div>
 
-  <div className="flex flex-wrap justify-between items-center gap-3">
-    <div>
-      <h3 className="text-white font-semibold">
-        Material Variance Report
-      </h3>
-      <p className="text-xs text-slate-400 mt-1">
-        Standard material consumption compared with actual consumption
-      </p>
-    </div>
-
-    <button
-      onClick={() =>
-        exportExcel(
-          varianceExcelRows,
-          "Material_Variance_Report.xlsx",
-          "Material Variance"
-        )
-      }
-      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-sm"
-    >
-      <FileSpreadsheet size={16} />
-      Export Excel
-    </button>
-  </div>
-
-  {(() => {
-    const varianceItems = batches.flatMap((batch) =>
-      (batch.materials || []).map((material) => ({
-        ...material,
-        batch_number: batch.batch_number,
-      }))
-    );
-
-    const excessCount = varianceItems.filter(
-      (item) => Number(item.variance) > 0
-    ).length;
-
-    const lowerCount = varianceItems.filter(
-      (item) => Number(item.variance) < 0
-    ).length;
-
-    const normalCount = varianceItems.filter(
-      (item) => Number(item.variance) === 0
-    ).length;
-
-    return (
-      <>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <GSTCard label="Excess Consumption" value={`${excessCount} Records`} warning />
-          <GSTCard label="Lower Consumption" value={`${lowerCount} Records`} />
-          <GSTCard label="Within Standard" value={`${normalCount} Records`} />
+          <button
+            onClick={() =>
+              exportExcel(
+                varianceExcelRows,
+                "Material_Variance_Report.xlsx",
+                "Material Variance",
+              )
+            }
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-sm"
+          >
+            <FileSpreadsheet size={16} />
+            Export Excel
+          </button>
         </div>
 
-        {batches.map((batch) => (
-          <div
-            key={batch.batch_number}
-            className="border border-slate-800 rounded-lg overflow-hidden"
-          >
-            <div className="flex flex-wrap justify-between items-center gap-3 bg-slate-800/60 px-4 py-3">
-              <div>
-                <p className="text-blue-400 font-semibold">
-                  {batch.batch_number}
-                </p>
-                <p className="text-xs text-slate-400 mt-1">
-                  {batch.product}
-                </p>
+        {(() => {
+          const varianceItems = batches.flatMap((batch) =>
+            (batch.materials || []).map((material) => ({
+              ...material,
+              batch_number: batch.batch_number,
+            })),
+          );
+
+          const excessCount = varianceItems.filter(
+            (item) => Number(item.variance) > 0,
+          ).length;
+
+          const lowerCount = varianceItems.filter(
+            (item) => Number(item.variance) < 0,
+          ).length;
+
+          const normalCount = varianceItems.filter(
+            (item) => Number(item.variance) === 0,
+          ).length;
+
+          return (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <GSTCard
+                  label="Excess Consumption"
+                  value={`${excessCount} Records`}
+                  warning
+                />
+                <GSTCard
+                  label="Lower Consumption"
+                  value={`${lowerCount} Records`}
+                />
+                <GSTCard
+                  label="Within Standard"
+                  value={`${normalCount} Records`}
+                />
               </div>
 
-              <div className="text-right text-xs text-slate-400">
-                Yield Variance:{" "}
-                <span className={
-                  Number(batch.yield_variance_percent) < 0
-                    ? "text-amber-400"
-                    : "text-emerald-400"
-                }>
-                  {Number(batch.yield_variance_percent || 0).toFixed(2)}%
-                </span>
-              </div>
-            </div>
+              {batches.map((batch) => (
+                <div
+                  key={batch.batch_number}
+                  className="border border-slate-800 rounded-lg overflow-hidden"
+                >
+                  <div className="flex flex-wrap justify-between items-center gap-3 bg-slate-800/60 px-4 py-3">
+                    <div>
+                      <p className="text-blue-400 font-semibold">
+                        {batch.batch_number}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {batch.product}
+                      </p>
+                    </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs uppercase text-slate-400 bg-slate-800/30">
-                  <tr>
-                    <th className="px-4 py-3">Material</th>
-                    <th className="px-4 py-3">Standard</th>
-                    <th className="px-4 py-3">Actual</th>
-                    <th className="px-4 py-3">Variance</th>
-                    <th className="px-4 py-3">Variance %</th>
-                    <th className="px-4 py-3">Status</th>
-                  </tr>
-                </thead>
+                    <div className="text-right text-xs text-slate-400">
+                      Yield Variance:{" "}
+                      <span
+                        className={
+                          Number(batch.yield_variance_percent) < 0
+                            ? "text-amber-400"
+                            : "text-emerald-400"
+                        }
+                      >
+                        {Number(batch.yield_variance_percent || 0).toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
 
-                <tbody className="divide-y divide-slate-800">
-                  {(batch.materials || []).map((material, index) => {
-                    const variance = Number(material.variance || 0);
-                    const percentage = Number(material.variance_percent || 0);
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                      <thead className="text-xs uppercase text-slate-400 bg-slate-800/30">
+                        <tr>
+                          <th className="px-4 py-3">Material</th>
+                          <th className="px-4 py-3">Standard</th>
+                          <th className="px-4 py-3">Actual</th>
+                          <th className="px-4 py-3">Variance</th>
+                          <th className="px-4 py-3">Variance %</th>
+                          <th className="px-4 py-3">Status</th>
+                        </tr>
+                      </thead>
 
-                    const status =
-                      variance > 0 ? "Excess Usage" :
-                      variance < 0 ? "Lower Usage" :
-                      "On Standard";
+                      <tbody className="divide-y divide-slate-800">
+                        {(batch.materials || []).map((material, index) => {
+                          const variance = Number(material.variance || 0);
+                          const percentage = Number(
+                            material.variance_percent || 0,
+                          );
 
-                    return (
-                      <tr key={`${batch.batch_number}-${material.material}-${index}`}>
-                        <td className="px-4 py-3 text-white">
-                          {material.material}
-                        </td>
-                        <td className="px-4 py-3 text-slate-300">
-                          {material.standard_usage} {material.unit}
-                        </td>
-                        <td className="px-4 py-3 text-slate-300">
-                          {material.actual_usage} {material.unit}
-                        </td>
-                        <td className={`px-4 py-3 font-semibold ${
-                          variance > 0 ? "text-amber-400" :
-                          variance < 0 ? "text-emerald-400" :
-                          "text-slate-300"
-                        }`}>
-                          {variance > 0 ? "+" : ""}
-                          {variance} {material.unit}
-                        </td>
-                        <td className={`px-4 py-3 ${
-                          percentage > 0 ? "text-amber-400" :
-                          percentage < 0 ? "text-emerald-400" :
-                          "text-slate-300"
-                        }`}>
-                          {percentage > 0 ? "+" : ""}
-                          {percentage.toFixed(2)}%
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-md text-xs ${
-                            variance > 0 ? "bg-amber-500/10 text-amber-400" :
-                            variance < 0 ? "bg-emerald-500/10 text-emerald-400" :
-                            "bg-slate-700 text-slate-300"
-                          }`}>
-                            {status}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ))}
+                          const status =
+                            variance > 0
+                              ? "Excess Usage"
+                              : variance < 0
+                                ? "Lower Usage"
+                                : "On Standard";
 
-        {batches.length === 0 && (
-          <p className="text-center text-slate-400 py-6">
-            No production variance records found.
-          </p>
-        )}
-      </>
-    );
-  })()}
-</section>
+                          return (
+                            <tr
+                              key={`${batch.batch_number}-${material.material}-${index}`}
+                            >
+                              <td className="px-4 py-3 text-white">
+                                {material.material}
+                              </td>
+                              <td className="px-4 py-3 text-slate-300">
+                                {material.standard_usage} {material.unit}
+                              </td>
+                              <td className="px-4 py-3 text-slate-300">
+                                {material.actual_usage} {material.unit}
+                              </td>
+                              <td
+                                className={`px-4 py-3 font-semibold ${
+                                  variance > 0
+                                    ? "text-amber-400"
+                                    : variance < 0
+                                      ? "text-emerald-400"
+                                      : "text-slate-300"
+                                }`}
+                              >
+                                {variance > 0 ? "+" : ""}
+                                {variance} {material.unit}
+                              </td>
+                              <td
+                                className={`px-4 py-3 ${
+                                  percentage > 0
+                                    ? "text-amber-400"
+                                    : percentage < 0
+                                      ? "text-emerald-400"
+                                      : "text-slate-300"
+                                }`}
+                              >
+                                {percentage > 0 ? "+" : ""}
+                                {percentage.toFixed(2)}%
+                              </td>
+                              <td className="px-4 py-3">
+                                <span
+                                  className={`px-2 py-1 rounded-md text-xs ${
+                                    variance > 0
+                                      ? "bg-amber-500/10 text-amber-400"
+                                      : variance < 0
+                                        ? "bg-emerald-500/10 text-emerald-400"
+                                        : "bg-slate-700 text-slate-300"
+                                  }`}
+                                >
+                                  {status}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+
+              {batches.length === 0 && (
+                <p className="text-center text-slate-400 py-6">
+                  No production variance records found.
+                </p>
+              )}
+            </>
+          );
+        })()}
+      </section>
 
       {/* Production Report */}
-  {/* Production Report */}
-<section className="bg-slate-900/70 border border-slate-800 rounded-xl p-5 space-y-4">
+      {/* Production Report */}
+      <section className="bg-slate-900/70 border border-slate-800 rounded-xl p-5 space-y-4">
+        <div className="flex flex-wrap justify-between items-center gap-3">
+          <h3 className="text-white font-semibold">Production Performance</h3>
 
-  <div className="flex flex-wrap justify-between items-center gap-3">
-    <h3 className="text-white font-semibold">
-      Production Performance
-    </h3>
+          <button
+            onClick={() =>
+              exportExcel(
+                productionExcelRows,
+                "Production_Report.xlsx",
+                "Production",
+              )
+            }
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-sm"
+          >
+            <FileSpreadsheet size={16} />
+            Export Excel
+          </button>
+        </div>
 
-    <button
-      onClick={() =>
-        exportExcel(
-          productionExcelRows,
-          "Production_Report.xlsx",
-          "Production"
-        )
-      }
-      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-sm"
-    >
-      <FileSpreadsheet size={16} />
-      Export Excel
-    </button>
-  </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <GSTCard label="Planned Output" value={`${plannedOutput} packets`} />
 
-  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-    <GSTCard
-      label="Planned Output"
-      value={`${plannedOutput} packets`}
-    />
+          <GSTCard
+            label="Actual Good Output"
+            value={`${actualOutput} packets`}
+          />
 
-    <GSTCard
-      label="Actual Good Output"
-      value={`${actualOutput} packets`}
-    />
+          <GSTCard
+            label="Yield Variance"
+            value={`${yieldVariance.toFixed(2)}%`}
+            warning={yieldVariance < 0}
+          />
+        </div>
 
-    <GSTCard
-      label="Yield Variance"
-      value={`${yieldVariance.toFixed(2)}%`}
-      warning={yieldVariance < 0}
-    />
-  </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="text-xs uppercase text-slate-400 bg-slate-800/60">
+              <tr>
+                <th className="px-4 py-3">Batch</th>
+                <th className="px-4 py-3">Product</th>
+                <th className="px-4 py-3">Planned</th>
+                <th className="px-4 py-3">Actual</th>
+                <th className="px-4 py-3">Status</th>
+              </tr>
+            </thead>
 
-  <div className="overflow-x-auto">
-    <table className="w-full text-sm text-left">
-      <thead className="text-xs uppercase text-slate-400 bg-slate-800/60">
-        <tr>
-          <th className="px-4 py-3">Batch</th>
-          <th className="px-4 py-3">Product</th>
-          <th className="px-4 py-3">Planned</th>
-          <th className="px-4 py-3">Actual</th>
-          <th className="px-4 py-3">Status</th>
-        </tr>
-      </thead>
+            <tbody className="divide-y divide-slate-800">
+              {batches.map((batch) => (
+                <tr key={batch.batch_number}>
+                  <td className="px-4 py-3 text-blue-400">
+                    {batch.batch_number}
+                  </td>
+                  <td className="px-4 py-3 text-white">{batch.product}</td>
+                  <td className="px-4 py-3 text-slate-300">
+                    {batch.planned_output}
+                  </td>
+                  <td className="px-4 py-3 text-slate-300">
+                    {batch.actual_good_output}
+                  </td>
+                  <td className="px-4 py-3 text-emerald-400">{batch.status}</td>
+                </tr>
+              ))}
 
-      <tbody className="divide-y divide-slate-800">
-        {batches.map((batch) => (
-          <tr key={batch.batch_number}>
-            <td className="px-4 py-3 text-blue-400">
-              {batch.batch_number}
-            </td>
-            <td className="px-4 py-3 text-white">
-              {batch.product}
-            </td>
-            <td className="px-4 py-3 text-slate-300">
-              {batch.planned_output}
-            </td>
-            <td className="px-4 py-3 text-slate-300">
-              {batch.actual_good_output}
-            </td>
-            <td className="px-4 py-3 text-emerald-400">
-              {batch.status}
-            </td>
-          </tr>
-        ))}
-
-        {batches.length === 0 && (
-          <tr>
-            <td colSpan="5" className="text-center text-slate-400 py-6">
-              No production batches found.
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
-</section>
+              {batches.length === 0 && (
+                <tr>
+                  <td colSpan="5" className="text-center text-slate-400 py-6">
+                    No production batches found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {/* Detailed Sales Report */}
       <section className="bg-slate-900/70 border border-slate-800 rounded-xl p-5 space-y-5">
-
         <div>
-          <h3 className="text-white font-semibold">
-            Sales Report
-          </h3>
+          <h3 className="text-white font-semibold">Sales Report</h3>
           <p className="text-xs text-slate-400 mt-1">
             Order status, customer details, dispatch and stock availability
           </p>
@@ -889,20 +863,11 @@ const salesExcelRows = orders.map((order) => ({
 
         {/* Sales Order Status Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <GSTCard
-            label="Total Orders"
-            value={orders.length}
-          />
+          <GSTCard label="Total Orders" value={orders.length} />
 
-          <GSTCard
-            label="Dispatched Orders"
-            value={dispatchedOrders}
-          />
+          <GSTCard label="Dispatched Orders" value={dispatchedOrders} />
 
-          <GSTCard
-            label="Approved Orders"
-            value={approvedOrders}
-          />
+          <GSTCard label="Approved Orders" value={approvedOrders} />
 
           <GSTCard
             label="Pending Orders"
@@ -931,109 +896,107 @@ const salesExcelRows = orders.map((order) => ({
         </div>
 
         {/* Order Details Table */}
-    {/* Order Details Table */}
-<div>
-  <div className="flex flex-wrap justify-between items-center gap-3 mb-3">
-    <h4 className="text-white font-medium">
-      Sales Order Details
-    </h4>
+        {/* Order Details Table */}
+        <div>
+          <div className="flex flex-wrap justify-between items-center gap-3 mb-3">
+            <h4 className="text-white font-medium">Sales Order Details</h4>
 
-    <button
-      onClick={() =>
-        exportExcel(
-          salesExcelRows,
-          "Sales_Report.xlsx",
-          "Sales Orders"
-        )
-      }
-      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-sm"
-    >
-      <FileSpreadsheet size={16} />
-      Export Excel
-    </button>
-  </div>
-
-  <div className="overflow-x-auto">
-    <table className="w-full text-sm text-left">
-      <thead className="text-xs uppercase text-slate-400 bg-slate-800/60">
-        <tr>
-          <th className="px-4 py-3">Order Number</th>
-          <th className="px-4 py-3">Customer</th>
-          <th className="px-4 py-3">Product</th>
-          <th className="px-4 py-3">Ordered</th>
-          <th className="px-4 py-3">Available Qty</th>
-          <th className="px-4 py-3">Dispatched</th>
-          <th className="px-4 py-3">Shortage</th>
-          <th className="px-4 py-3">Status</th>
-          <th className="px-4 py-3">Created At</th>
-        </tr>
-      </thead>
-
-      <tbody className="divide-y divide-slate-800">
-        {orders.map((order) => {
-          const status = getOrderStatus(order);
-
-          return (
-            <tr
-              key={order.order_number}
-              className="hover:bg-slate-800/40"
+            <button
+              onClick={() =>
+                exportExcel(salesExcelRows, "Sales_Report.xlsx", "Sales Orders")
+              }
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-sm"
             >
-              <td className="px-4 py-3 text-blue-400 font-medium whitespace-nowrap">
-                {order.order_number}
-              </td>
+              <FileSpreadsheet size={16} />
+              Export Excel
+            </button>
+          </div>
 
-              <td className="px-4 py-3 text-white whitespace-nowrap">
-                {order.customer || "Not available"}
-              </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="text-xs uppercase text-slate-400 bg-slate-800/60">
+                <tr>
+                  <th className="px-4 py-3">Order Number</th>
+                  <th className="px-4 py-3">Customer</th>
+                  <th className="px-4 py-3">Product</th>
+                  <th className="px-4 py-3">Ordered</th>
+                  <th className="px-4 py-3">Available Qty</th>
+                  <th className="px-4 py-3">Dispatched</th>
+                  <th className="px-4 py-3">Shortage</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Created At</th>
+                </tr>
+              </thead>
 
-              <td className="px-4 py-3 text-slate-300 whitespace-nowrap">
-                {order.product || "Not available"}
-              </td>
+              <tbody className="divide-y divide-slate-800">
+                {orders.map((order) => {
+                  const status = getOrderStatus(order);
 
-              <td className="px-4 py-3 text-white">
-                {Number(order.quantity || 0)}
-              </td>
+                  return (
+                    <tr
+                      key={order.order_number}
+                      className="hover:bg-slate-800/40"
+                    >
+                      <td className="px-4 py-3 text-blue-400 font-medium whitespace-nowrap">
+                        {order.order_number}
+                      </td>
 
-              <td className="px-4 py-3 text-slate-300">
-                {Number(order.available_quantity || 0)}
-              </td>
+                      <td className="px-4 py-3 text-white whitespace-nowrap">
+                        {order.customer || "Not available"}
+                      </td>
 
-              <td className="px-4 py-3 text-slate-300">
-                {Number(order.dispatched_quantity || 0)}
-              </td>
+                      <td className="px-4 py-3 text-slate-300 whitespace-nowrap">
+                        {order.product || "Not available"}
+                      </td>
 
-              <td className={`px-4 py-3 font-semibold ${
-                Number(order.shortage || 0) > 0
-                  ? "text-red-400"
-                  : "text-slate-300"
-              }`}>
-                {Number(order.shortage || 0)}
-              </td>
+                      <td className="px-4 py-3 text-white">
+                        {Number(order.quantity || 0)}
+                      </td>
 
-              <td className="px-4 py-3">
-                <span className={`px-2 py-1 rounded-md text-xs whitespace-nowrap ${getStatusStyle(status)}`}>
-                  {status || "UNKNOWN"}
-                </span>
-              </td>
+                      <td className="px-4 py-3 text-slate-300">
+                        {Number(order.available_quantity || 0)}
+                      </td>
 
-              <td className="px-4 py-3 text-slate-400 whitespace-nowrap">
-                {formatDate(order.created_at)}
-              </td>
-            </tr>
-          );
-        })}
+                      <td className="px-4 py-3 text-slate-300">
+                        {Number(order.dispatched_quantity || 0)}
+                      </td>
 
-        {orders.length === 0 && (
-          <tr>
-            <td colSpan="9" className="text-center text-slate-400 py-6">
-              No sales orders found.
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
-</div>  
+                      <td
+                        className={`px-4 py-3 font-semibold ${
+                          Number(order.shortage || 0) > 0
+                            ? "text-red-400"
+                            : "text-slate-300"
+                        }`}
+                      >
+                        {Number(order.shortage || 0)}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <span
+                          className={`px-2 py-1 rounded-md text-xs whitespace-nowrap ${getStatusStyle(status)}`}
+                        >
+                          {status || "UNKNOWN"}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3 text-slate-400 whitespace-nowrap">
+                        {formatDate(order.created_at)}
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {orders.length === 0 && (
+                  <tr>
+                    <td colSpan="9" className="text-center text-slate-400 py-6">
+                      No sales orders found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       {/* Print */}
@@ -1045,7 +1008,6 @@ const salesExcelRows = orders.map((order) => ({
           Print Reports
         </button>
       </div>
-
     </div>
   );
 }
@@ -1066,13 +1028,9 @@ function ReportCard({ title, value, icon, color }) {
         {icon}
       </div>
 
-      <p className="text-sm text-slate-400 mt-4">
-        {title}
-      </p>
+      <p className="text-sm text-slate-400 mt-4">{title}</p>
 
-      <h3 className="text-xl font-bold text-white mt-1">
-        {value}
-      </h3>
+      <h3 className="text-xl font-bold text-white mt-1">{value}</h3>
     </div>
   );
 }
@@ -1080,9 +1038,7 @@ function ReportCard({ title, value, icon, color }) {
 function GSTCard({ label, value, warning = false }) {
   return (
     <div className="bg-slate-800/60 border border-slate-700/60 rounded-lg p-4">
-      <p className="text-xs text-slate-400">
-        {label}
-      </p>
+      <p className="text-xs text-slate-400">{label}</p>
 
       <h4
         className={`text-lg font-semibold mt-2 ${

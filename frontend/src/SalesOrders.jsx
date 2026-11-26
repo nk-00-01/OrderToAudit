@@ -1,7 +1,6 @@
-
 import { useEffect, useState } from "react";
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "https://ordertoaudit-backend.onrender.com";
 
 export default function SalesOrders({ token }) {
   const [orders, setOrders] = useState([]);
@@ -22,7 +21,7 @@ export default function SalesOrders({ token }) {
     order_number: "",
     customer_id: "",
     product_sku: "MUR-200",
-    quantity: ""
+    quantity: "",
   });
 
   async function fetchOrders() {
@@ -31,8 +30,8 @@ export default function SalesOrders({ token }) {
 
       const response = await fetch(`${API_URL}/sales/orders`, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
@@ -50,14 +49,11 @@ export default function SalesOrders({ token }) {
 
   async function fetchOptions() {
     try {
-      const response = await fetch(
-        `${API_URL}/sales/order-options`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+      const response = await fetch(`${API_URL}/sales/order-options`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Unable to load customers and products.");
@@ -71,14 +67,12 @@ export default function SalesOrders({ token }) {
       setForm((previous) => ({
         ...previous,
         customer_id:
-          previous.customer_id ||
-          String(data.customers?.[0]?.id || ""),
-        product_sku:
-          data.products?.some(
-            (product) => product.sku === previous.product_sku
-          )
-            ? previous.product_sku
-            : data.products?.[0]?.sku || ""
+          previous.customer_id || String(data.customers?.[0]?.id || ""),
+        product_sku: data.products?.some(
+          (product) => product.sku === previous.product_sku,
+        )
+          ? previous.product_sku
+          : data.products?.[0]?.sku || "",
       }));
     } catch (err) {
       setError(err.message);
@@ -93,7 +87,7 @@ export default function SalesOrders({ token }) {
   }, [token]);
 
   const selectedProduct = products.find(
-    (product) => product.sku === form.product_sku
+    (product) => product.sku === form.product_sku,
   );
 
   async function handleCreateOrder(e) {
@@ -119,14 +113,14 @@ export default function SalesOrders({ token }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           order_number: form.order_number.trim(),
           customer_id: Number(form.customer_id),
           product_sku: form.product_sku,
-          quantity: Number(form.quantity)
-        })
+          quantity: Number(form.quantity),
+        }),
       });
 
       const data = await response.json();
@@ -135,15 +129,13 @@ export default function SalesOrders({ token }) {
         throw new Error(data.detail || "Unable to create order.");
       }
 
-      setSuccess(
-        `Order ${data.order_number} created successfully.`
-      );
+      setSuccess(`Order ${data.order_number} created successfully.`);
 
       setForm({
         order_number: "",
         customer_id: form.customer_id,
         product_sku: form.product_sku,
-        quantity: ""
+        quantity: "",
       });
 
       setShowForm(false);
@@ -169,14 +161,12 @@ export default function SalesOrders({ token }) {
 
   const totalOrders = orders.length;
   const dispatched = orders.filter(
-    (order) => order.status === "DISPATCHED"
+    (order) => order.status === "DISPATCHED",
   ).length;
-  const pending = orders.filter(
-    (order) => order.status === "PENDING"
-  ).length;
+  const pending = orders.filter((order) => order.status === "PENDING").length;
   const totalShortage = orders.reduce(
     (sum, order) => sum + Number(order.shortage || 0),
-    0
+    0,
   );
 
   return (
@@ -253,7 +243,8 @@ export default function SalesOrders({ token }) {
                 <option value="">Select Customer</option>
                 {customers.map((customer) => (
                   <option key={customer.id} value={customer.id}>
-                    {customer.name} — {customer.customer_type} ({customer.state})
+                    {customer.name} — {customer.customer_type} ({customer.state}
+                    )
                   </option>
                 ))}
               </select>
@@ -291,9 +282,7 @@ export default function SalesOrders({ token }) {
                 className="form-input"
                 placeholder="Enter quantity"
                 value={form.quantity}
-                onChange={(e) =>
-                  setForm({ ...form, quantity: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, quantity: e.target.value })}
                 required
               />
             </div>
@@ -411,4 +400,3 @@ function SummaryCard({ title, value }) {
     </div>
   );
 }
- 

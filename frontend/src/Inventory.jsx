@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   Search,
@@ -17,7 +16,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "https://ordertoaudit-backend.onrender.com";
 
 const getItemIcon = (sku) => {
   const icons = {
@@ -48,8 +47,8 @@ function Inventory({ token }) {
   const [category, setCategory] = useState("All");
 
   const [stockItems, setStockItems] = useState([]);
-const [movements, setMovements] = useState([]);
-const [lowStockAlerts, setLowStockAlerts] = useState([]);
+  const [movements, setMovements] = useState([]);
+  const [lowStockAlerts, setLowStockAlerts] = useState([]);
   const [summary, setSummary] = useState({
     tracked_items: 0,
     raw_materials: 0,
@@ -81,16 +80,16 @@ const [lowStockAlerts, setLowStockAlerts] = useState([]);
       };
 
       const [
-  stockResponse,
-  movementResponse,
-  summaryResponse,
-  lowStockResponse,
-] = await Promise.all([
-  fetch(`${API_URL}/inventory/stock`, { headers }),
-  fetch(`${API_URL}/inventory/movements?limit=100`, { headers }),
-  fetch(`${API_URL}/inventory/summary`, { headers }),
-  fetch(`${API_URL}/inventory/low-stock`, { headers }),
-]);
+        stockResponse,
+        movementResponse,
+        summaryResponse,
+        lowStockResponse,
+      ] = await Promise.all([
+        fetch(`${API_URL}/inventory/stock`, { headers }),
+        fetch(`${API_URL}/inventory/movements?limit=100`, { headers }),
+        fetch(`${API_URL}/inventory/summary`, { headers }),
+        fetch(`${API_URL}/inventory/low-stock`, { headers }),
+      ]);
 
       if (
         !stockResponse.ok ||
@@ -101,12 +100,12 @@ const [lowStockAlerts, setLowStockAlerts] = useState([]);
         throw new Error("Unable to retrieve inventory data.");
       }
 
-      const [stockData, movementData, summaryData,lowStockData,] =
+      const [stockData, movementData, summaryData, lowStockData] =
         await Promise.all([
           stockResponse.json(),
           movementResponse.json(),
           summaryResponse.json(),
-           lowStockResponse.json(),
+          lowStockResponse.json(),
         ]);
 
       setStockItems(stockData.items || []);
@@ -116,7 +115,7 @@ const [lowStockAlerts, setLowStockAlerts] = useState([]);
     } catch (err) {
       console.error("Inventory API error:", err);
       setError(
-        "Could not connect to the backend. Check whether FastAPI is running."
+        "Could not connect to the backend. Check whether FastAPI is running.",
       );
     } finally {
       setLoading(false);
@@ -164,23 +163,19 @@ const [lowStockAlerts, setLowStockAlerts] = useState([]);
     return units[unit] || unit;
   };
 
- const getDisplayCost = (item) => {
-  const cost = item.unit_cost ?? item.cost;
+  const getDisplayCost = (item) => {
+    const cost = item.unit_cost ?? item.cost;
 
-  if (
-    cost !== null &&
-    cost !== undefined &&
-    Number(cost) > 0
-  ) {
-    return `₹${Number(cost).toFixed(2)}`;
-  }
+    if (cost !== null && cost !== undefined && Number(cost) > 0) {
+      return `₹${Number(cost).toFixed(2)}`;
+    }
 
-  if (item.sku === "MUR-200") {
-    return "₹19.15*";
-  }
+    if (item.sku === "MUR-200") {
+      return "₹19.15*";
+    }
 
-  return "Not set";
-};
+    return "Not set";
+  };
 
   // Submit form to backend
   const handleSubmit = async (event) => {
@@ -285,7 +280,7 @@ const [lowStockAlerts, setLowStockAlerts] = useState([]);
         throw new Error(
           typeof result.detail === "string"
             ? result.detail
-            : "Unable to complete the inventory operation."
+            : "Unable to complete the inventory operation.",
         );
       }
 
@@ -297,7 +292,6 @@ const [lowStockAlerts, setLowStockAlerts] = useState([]);
 
       // Refresh stock and ledger
       await fetchInventory();
-
     } catch (err) {
       console.error("Inventory operation error:", err);
       setFormError(err.message || "Something went wrong.");
@@ -308,9 +302,7 @@ const [lowStockAlerts, setLowStockAlerts] = useState([]);
 
   // Only raw materials and packaging can be selected for purchases/adjustments
   const materialItems = stockItems.filter(
-    (item) =>
-      item.category === "Raw Material" ||
-      item.category === "Packaging"
+    (item) => item.category === "Raw Material" || item.category === "Packaging",
   );
 
   const filteredItems = stockItems.filter((item) => {
@@ -318,15 +310,13 @@ const [lowStockAlerts, setLowStockAlerts] = useState([]);
       item.name.toLowerCase().includes(search.toLowerCase()) ||
       item.sku.toLowerCase().includes(search.toLowerCase());
 
-    const matchesCategory =
-      category === "All" || item.category === category;
+    const matchesCategory = category === "All" || item.category === category;
 
     return matchesSearch && matchesCategory;
   });
 
   return (
     <div className="mx-auto w-full max-w-[1700px] space-y-8 p-5 sm:p-7 xl:p-9">
-
       {/* Page heading */}
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
@@ -383,10 +373,7 @@ const [lowStockAlerts, setLowStockAlerts] = useState([]);
             disabled={loading}
             className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/[0.07] disabled:opacity-50"
           >
-            <RefreshCw
-              size={16}
-              className={loading ? "animate-spin" : ""}
-            />
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             Refresh
           </button>
         </div>
@@ -445,67 +432,68 @@ const [lowStockAlerts, setLowStockAlerts] = useState([]);
           color="emerald"
         />
       </section>
-{/* Low stock alerts */}
-<section className="rounded-2xl border border-amber-500/20 bg-[#101a2c] p-5 sm:p-6">
-  <div className="mb-5 flex items-center justify-between">
-    <div>
-      <h3 className="font-semibold text-white">
-        Inventory Stock Alerts
-      </h3>
-      <p className="mt-1 text-xs text-slate-500">
-        Materials at or below their minimum stock level
-      </p>
-    </div>
-
-    <span className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-      lowStockAlerts.length > 0
-        ? "bg-amber-500/10 text-amber-400"
-        : "bg-emerald-500/10 text-emerald-400"
-    }`}>
-      {lowStockAlerts.length} Alerts
-    </span>
-  </div>
-
-  {lowStockAlerts.length > 0 ? (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {lowStockAlerts.map((alert) => (
-        <div
-          key={alert.sku}
-          className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.07] bg-white/[0.025] p-4"
-        >
+      {/* Low stock alerts */}
+      <section className="rounded-2xl border border-amber-500/20 bg-[#101a2c] p-5 sm:p-6">
+        <div className="mb-5 flex items-center justify-between">
           <div>
-            <p className="font-medium text-white">
-              {alert.name}
-            </p>
-            <p className="mt-1 font-mono text-xs text-slate-500">
-              {alert.sku}
-            </p>
-            <p className="mt-2 text-xs text-slate-400">
-              Available: {alert.available_quantity} {getDisplayUnit(alert.unit)}
-            </p>
-            <p className="text-xs text-slate-400">
-              Minimum: {alert.minimum_stock} {getDisplayUnit(alert.unit)}
+            <h3 className="font-semibold text-white">Inventory Stock Alerts</h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Materials at or below their minimum stock level
             </p>
           </div>
 
-          <span className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold ${
-            alert.status === "OUT_OF_STOCK"
-              ? "bg-red-500/10 text-red-400"
-              : "bg-amber-500/10 text-amber-400"
-          }`}>
-            {alert.status === "OUT_OF_STOCK"
-              ? "Out of Stock"
-              : "Low Stock"}
+          <span
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+              lowStockAlerts.length > 0
+                ? "bg-amber-500/10 text-amber-400"
+                : "bg-emerald-500/10 text-emerald-400"
+            }`}
+          >
+            {lowStockAlerts.length} Alerts
           </span>
         </div>
-      ))}
-    </div>
-  ) : (
-    <p className="rounded-xl bg-emerald-500/5 p-4 text-sm text-emerald-400">
-      All materials are above their minimum stock levels.
-    </p>
-  )}
-</section>
+
+        {lowStockAlerts.length > 0 ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {lowStockAlerts.map((alert) => (
+              <div
+                key={alert.sku}
+                className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.07] bg-white/[0.025] p-4"
+              >
+                <div>
+                  <p className="font-medium text-white">{alert.name}</p>
+                  <p className="mt-1 font-mono text-xs text-slate-500">
+                    {alert.sku}
+                  </p>
+                  <p className="mt-2 text-xs text-slate-400">
+                    Available: {alert.available_quantity}{" "}
+                    {getDisplayUnit(alert.unit)}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    Minimum: {alert.minimum_stock} {getDisplayUnit(alert.unit)}
+                  </p>
+                </div>
+
+                <span
+                  className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold ${
+                    alert.status === "OUT_OF_STOCK"
+                      ? "bg-red-500/10 text-red-400"
+                      : "bg-amber-500/10 text-amber-400"
+                  }`}
+                >
+                  {alert.status === "OUT_OF_STOCK"
+                    ? "Out of Stock"
+                    : "Low Stock"}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-xl bg-emerald-500/5 p-4 text-sm text-emerald-400">
+            All materials are above their minimum stock levels.
+          </p>
+        )}
+      </section>
 
       {/* Stock table */}
       <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#101a2c]">
@@ -605,7 +593,7 @@ const [lowStockAlerts, setLowStockAlerts] = useState([]);
                     <button
                       onClick={() =>
                         alert(
-                          `${item.name}\nSKU: ${item.sku}\nStock: ${item.quantity} ${item.unit}\nUnit cost: ${getDisplayCost(item)}`
+                          `${item.name}\nSKU: ${item.sku}\nStock: ${item.quantity} ${item.unit}\nUnit cost: ${getDisplayCost(item)}`,
                         )
                       }
                       className="rounded-lg p-2 text-slate-500 transition hover:bg-white/[0.06] hover:text-white"
@@ -677,9 +665,7 @@ const [lowStockAlerts, setLowStockAlerts] = useState([]);
                     {movement.item}
                   </td>
 
-                  <td className="px-6 py-4 text-slate-400">
-                    {movement.type}
-                  </td>
+                  <td className="px-6 py-4 text-slate-400">{movement.type}</td>
 
                   <td className="px-6 py-4">
                     {movement.direction === "IN" ? (
@@ -732,7 +718,6 @@ const [lowStockAlerts, setLowStockAlerts] = useState([]);
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm">
           <div className="my-auto w-full max-w-xl rounded-2xl border border-white/10 bg-[#101a2c] shadow-2xl">
-
             {/* Modal header */}
             <div className="flex items-center justify-between border-b border-white/[0.07] p-5 sm:p-6">
               <div>
@@ -782,7 +767,6 @@ const [lowStockAlerts, setLowStockAlerts] = useState([]);
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4 p-5 sm:p-6">
-
               {activeAction === "material" && (
                 <>
                   <FormField label="Material SKU">
@@ -882,9 +866,7 @@ const [lowStockAlerts, setLowStockAlerts] = useState([]);
 
                   {form.quantity && form.unit_cost && (
                     <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
-                      <p className="text-xs text-slate-400">
-                        Purchase Value
-                      </p>
+                      <p className="text-xs text-slate-400">Purchase Value</p>
                       <p className="mt-1 text-xl font-bold text-blue-400">
                         ₹
                         {(

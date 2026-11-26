@@ -42,6 +42,7 @@ The main objective is simple:
 <td width="50%">
 
 ### 📦 Inventory Management
+
 - Raw material tracking
 - Packaging material tracking
 - Finished goods monitoring
@@ -53,6 +54,7 @@ The main objective is simple:
 <td width="50%">
 
 ### 🏭 Production Management
+
 - Production batch creation
 - Bill of Materials (BOM)
 - Material consumption tracking
@@ -66,6 +68,7 @@ The main objective is simple:
 <td width="50%">
 
 ### 🛒 Sales Management
+
 - Customer management
 - Sales order creation
 - Stock availability validation
@@ -76,6 +79,7 @@ The main objective is simple:
 <td width="50%">
 
 ### 🧾 Invoice Management
+
 - GST invoice generation
 - Tax calculations
 - PDF invoice downloads
@@ -88,6 +92,7 @@ The main objective is simple:
 <td width="50%">
 
 ### 💰 Accounts Management
+
 - Customer payment recording
 - Payment history
 - Outstanding balance tracking
@@ -97,6 +102,7 @@ The main objective is simple:
 <td width="50%">
 
 ### 📊 Reports & Analytics
+
 - Inventory reports
 - Production reports
 - Material variance analysis
@@ -215,19 +221,19 @@ flowchart TD
 
 ## 🧰 Technology Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | React |
-| Build Tool | Vite |
-| Styling | Tailwind CSS |
-| Backend | Python, FastAPI |
-| Database | PostgreSQL |
-| ORM | SQLAlchemy |
-| Authentication | JWT |
-| Password Hashing | Argon2 |
-| PDF Generation | ReportLab |
-| Testing | Pytest |
-| Version Control | Git, GitHub |
+| Layer            | Technology      |
+| ---------------- | --------------- |
+| Frontend         | React           |
+| Build Tool       | Vite            |
+| Styling          | Tailwind CSS    |
+| Backend          | Python, FastAPI |
+| Database         | PostgreSQL      |
+| ORM              | SQLAlchemy      |
+| Authentication   | JWT             |
+| Password Hashing | Argon2          |
+| PDF Generation   | ReportLab       |
+| Testing          | Pytest          |
+| Version Control  | Git, GitHub     |
 
 ---
 
@@ -341,9 +347,9 @@ Load demonstration data using the required setup and seed scripts.
 python -m uvicorn main:app --reload
 ```
 
-Backend: `http://127.0.0.1:8000`
+Backend: `https://ordertoaudit-backend.onrender.com`
 
-API Documentation: `http://127.0.0.1:8000/docs`
+API Documentation: `https://ordertoaudit-backend.onrender.com/docs`
 
 ### 6. Start the frontend
 
@@ -398,7 +404,7 @@ Production output is generated in `frontend/dist`.
 - Transaction-based inventory ledger
 - Environment-based secret management
 
-*GST configuration and invoice calculations must be verified against actual business registration and applicable tax requirements before real-world use.*
+_GST configuration and invoice calculations must be verified against actual business registration and applicable tax requirements before real-world use._
 
 ---
 

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   FileText,
@@ -10,7 +9,7 @@ import {
   Download,
 } from "lucide-react";
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "https://ordertoaudit-backend.onrender.com";
 
 export default function Invoices({ token }) {
   const [invoices, setInvoices] = useState([]);
@@ -63,7 +62,7 @@ export default function Invoices({ token }) {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -90,31 +89,28 @@ export default function Invoices({ token }) {
     }
   }
 
-  const filteredInvoices = invoices.filter((invoice) =>
-    (invoice.invoice_number || "")
-      .toLowerCase()
-      .includes(search.toLowerCase()) ||
-    (invoice.customer || "")
-      .toLowerCase()
-      .includes(search.toLowerCase()) ||
-    (invoice.order_number || "")
-      .toLowerCase()
-      .includes(search.toLowerCase())
+  const filteredInvoices = invoices.filter(
+    (invoice) =>
+      (invoice.invoice_number || "")
+        .toLowerCase()
+        .includes(search.toLowerCase()) ||
+      (invoice.customer || "").toLowerCase().includes(search.toLowerCase()) ||
+      (invoice.order_number || "").toLowerCase().includes(search.toLowerCase()),
   );
 
   const totalInvoiceValue = invoices.reduce(
     (sum, invoice) => sum + Number(invoice.total_amount || 0),
-    0
+    0,
   );
 
   const totalPaid = invoices.reduce(
     (sum, invoice) => sum + Number(invoice.paid_amount || 0),
-    0
+    0,
   );
 
   const totalOutstanding = invoices.reduce(
     (sum, invoice) => sum + Number(invoice.outstanding_amount || 0),
-    0
+    0,
   );
 
   const formatCurrency = (value) =>
@@ -125,7 +121,6 @@ export default function Invoices({ token }) {
 
   return (
     <div className="space-y-6">
-
       {/* HEADER */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -148,7 +143,6 @@ export default function Invoices({ token }) {
 
       {/* SUMMARY CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-
         <SummaryCard
           title="Total Invoices"
           value={invoices.length}
@@ -176,15 +170,11 @@ export default function Invoices({ token }) {
           icon={<Clock size={20} />}
           color="yellow"
         />
-
       </div>
 
       {/* SEARCH */}
       <div className="relative">
-        <Search
-          size={17}
-          className="absolute left-3 top-3 text-slate-500"
-        />
+        <Search size={17} className="absolute left-3 top-3 text-slate-500" />
 
         <input
           value={search}
@@ -203,11 +193,8 @@ export default function Invoices({ token }) {
 
       {/* INVOICE TABLE */}
       <div className="bg-slate-900/70 border border-slate-800 rounded-xl overflow-hidden">
-
         <div className="p-5 border-b border-slate-800">
-          <h3 className="text-white font-semibold">
-            Invoice Records
-          </h3>
+          <h3 className="text-white font-semibold">Invoice Records</h3>
           <p className="text-xs text-slate-400 mt-1">
             GST and payment information from the database
           </p>
@@ -218,9 +205,7 @@ export default function Invoices({ token }) {
             Loading invoices...
           </div>
         ) : error ? (
-          <div className="p-10 text-center text-red-400">
-            {error}
-          </div>
+          <div className="p-10 text-center text-red-400">{error}</div>
         ) : filteredInvoices.length === 0 ? (
           <div className="p-10 text-center text-slate-400">
             No invoices found.
@@ -228,7 +213,6 @@ export default function Invoices({ token }) {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-
               <thead className="text-xs uppercase text-slate-400 bg-slate-800/60">
                 <tr>
                   <th className="px-5 py-4">Invoice</th>
@@ -292,9 +276,7 @@ export default function Invoices({ token }) {
                       </td>
 
                       <td className="px-5 py-4">
-                        <InvoiceStatus
-                          status={invoice.payment_status}
-                        />
+                        <InvoiceStatus status={invoice.payment_status} />
                       </td>
 
                       <td className="px-5 py-4">
@@ -322,7 +304,6 @@ export default function Invoices({ token }) {
                   );
                 })}
               </tbody>
-
             </table>
           </div>
         )}
@@ -341,7 +322,9 @@ function SummaryCard({ title, value, icon, color }) {
 
   return (
     <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors[color]}`}>
+      <div
+        className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors[color]}`}
+      >
         {icon}
       </div>
 

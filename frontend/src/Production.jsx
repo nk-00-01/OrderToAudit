@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from "react";
 import {
   Factory,
@@ -12,7 +11,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "https://ordertoaudit-backend.onrender.com";
 
 const MATERIALS = [
   { sku: "RAW-FLOUR", name: "Flour", unit: "kg" },
@@ -95,16 +94,16 @@ function Production({ token }) {
   const updateMaterial = (index, value) => {
     setMaterials((previous) =>
       previous.map((material, i) =>
-        i === index ? { ...material, quantity: value } : material
-      )
+        i === index ? { ...material, quantity: value } : material,
+      ),
     );
   };
 
   const updateExpense = (index, field, value) => {
     setExpenses((previous) =>
       previous.map((expense, i) =>
-        i === index ? { ...expense, [field]: value } : expense
-      )
+        i === index ? { ...expense, [field]: value } : expense,
+      ),
     );
   };
 
@@ -147,7 +146,9 @@ function Production({ token }) {
     }
 
     if (actual + damaged > planned) {
-      setError("Good output plus damaged pouches cannot exceed planned output.");
+      setError(
+        "Good output plus damaged pouches cannot exceed planned output.",
+      );
       return;
     }
 
@@ -155,7 +156,7 @@ function Production({ token }) {
       (material) =>
         material.quantity === "" ||
         !Number.isFinite(Number(material.quantity)) ||
-        Number(material.quantity) <= 0
+        Number(material.quantity) <= 0,
     );
 
     if (invalidMaterial) {
@@ -168,7 +169,7 @@ function Production({ token }) {
         expense.reference.trim() ||
         expense.expense_type.trim() ||
         expense.amount !== "" ||
-        expense.notes.trim()
+        expense.notes.trim(),
     );
 
     for (const expense of enteredExpenses) {
@@ -179,7 +180,9 @@ function Production({ token }) {
         !Number.isFinite(Number(expense.amount)) ||
         Number(expense.amount) <= 0
       ) {
-        setError("Complete the reference, expense type and positive amount for each expense.");
+        setError(
+          "Complete the reference, expense type and positive amount for each expense.",
+        );
         return;
       }
     }
@@ -218,12 +221,14 @@ function Production({ token }) {
 
       if (!response.ok) {
         throw new Error(
-          data.detail || data.message || "Production batch could not be recorded."
+          data.detail ||
+            data.message ||
+            "Production batch could not be recorded.",
         );
       }
 
       setSuccess(
-        `Production batch ${data.batch_number} recorded successfully.`
+        `Production batch ${data.batch_number} recorded successfully.`,
       );
 
       resetForm();
@@ -239,22 +244,21 @@ function Production({ token }) {
 
   const totalPlanned = batches.reduce(
     (sum, batch) => sum + Number(batch.planned_output || 0),
-    0
+    0,
   );
 
   const totalActual = batches.reduce(
     (sum, batch) => sum + Number(batch.actual_good_output || 0),
-    0
+    0,
   );
 
   const totalExpenses = batches.reduce(
     (sum, batch) => sum + Number(batch.expenses || 0),
-    0
+    0,
   );
 
   return (
     <div className="mx-auto w-full max-w-[1700px] space-y-8 p-5 sm:p-7 xl:p-9">
-
       {/* Header */}
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
@@ -542,7 +546,7 @@ function Production({ token }) {
                         type="button"
                         onClick={() =>
                           setExpenses((previous) =>
-                            previous.filter((_, i) => i !== index)
+                            previous.filter((_, i) => i !== index),
                           )
                         }
                         className="mb-1 rounded-lg border border-red-500/20 p-2 text-red-400 hover:bg-red-500/10"
@@ -557,8 +561,8 @@ function Production({ token }) {
             </div>
 
             <p className="mt-2 text-xs text-slate-500">
-              Leave an expense row completely empty if you do not want to
-              record that expense.
+              Leave an expense row completely empty if you do not want to record
+              that expense.
             </p>
           </div>
 

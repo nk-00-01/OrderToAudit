@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react";
 import {
   Wallet,
@@ -14,7 +13,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "https://ordertoaudit-backend.onrender.com";
 
 export default function Accounts({ token }) {
   const [data, setData] = useState({
@@ -60,9 +59,7 @@ export default function Accounts({ token }) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.detail || `API Error: ${response.status}`
-        );
+        throw new Error(errorData.detail || `API Error: ${response.status}`);
       }
 
       const result = await response.json();
@@ -119,24 +116,21 @@ export default function Accounts({ token }) {
     })}`;
 
   const selectedInvoice = invoices.find(
-    (invoice) =>
-      invoice.invoice_number === paymentForm.invoice_number
+    (invoice) => invoice.invoice_number === paymentForm.invoice_number,
   );
 
-  const outstanding = Number(
-    selectedInvoice?.outstanding_amount || 0
-  );
+  const outstanding = Number(selectedInvoice?.outstanding_amount || 0);
 
   const filteredPayments = (data.payments || []).filter((payment) =>
     `${payment.reference || ""} ${payment.customer || ""} ${payment.invoice_number || ""}`
       .toLowerCase()
-      .includes(search.toLowerCase())
+      .includes(search.toLowerCase()),
   );
 
   const filteredExpenses = (data.expenses || []).filter((expense) =>
     `${expense.reference || ""} ${expense.expense_type || ""} ${expense.notes || ""}`
       .toLowerCase()
-      .includes(search.toLowerCase())
+      .includes(search.toLowerCase()),
   );
 
   function handlePaymentChange(event) {
@@ -169,7 +163,7 @@ export default function Accounts({ token }) {
 
     if (amount > outstanding) {
       setPaymentError(
-        `Payment cannot exceed the outstanding amount of ${formatCurrency(outstanding)}.`
+        `Payment cannot exceed the outstanding amount of ${formatCurrency(outstanding)}.`,
       );
       return;
     }
@@ -187,8 +181,7 @@ export default function Accounts({ token }) {
           invoice_number: paymentForm.invoice_number,
           amount: amount.toFixed(2),
           payment_method: paymentForm.payment_method,
-          reference_number:
-            paymentForm.reference_number.trim() || null,
+          reference_number: paymentForm.reference_number.trim() || null,
           notes: paymentForm.notes.trim() || null,
         }),
       });
@@ -196,13 +189,11 @@ export default function Accounts({ token }) {
       const result = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(
-          result.detail || "Unable to record payment."
-        );
+        throw new Error(result.detail || "Unable to record payment.");
       }
 
       setPaymentMessage(
-        `Payment of ${formatCurrency(result.payment_amount)} recorded successfully for ${result.invoice_number}.`
+        `Payment of ${formatCurrency(result.payment_amount)} recorded successfully for ${result.invoice_number}.`,
       );
 
       setPaymentForm({
@@ -214,11 +205,7 @@ export default function Accounts({ token }) {
       });
 
       // Refresh all account and invoice information
-      await Promise.all([
-        fetchAccounts(),
-        fetchInvoices(),
-      ]);
-
+      await Promise.all([fetchAccounts(), fetchInvoices()]);
     } catch (error) {
       setPaymentError(error.message);
     } finally {
@@ -228,7 +215,6 @@ export default function Accounts({ token }) {
 
   return (
     <div className="space-y-6">
-
       {/* HEADER */}
       <div className="flex flex-wrap justify-between items-center gap-4">
         <div>
@@ -241,9 +227,7 @@ export default function Accounts({ token }) {
         </div>
 
         <button
-          onClick={() =>
-            Promise.all([fetchAccounts(), fetchInvoices()])
-          }
+          onClick={() => Promise.all([fetchAccounts(), fetchInvoices()])}
           disabled={loading}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm"
         >
@@ -254,7 +238,6 @@ export default function Accounts({ token }) {
 
       {/* SUMMARY CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-
         <SummaryCard
           title="Payments Received"
           value={formatCurrency(summary.total_payments)}
@@ -282,12 +265,10 @@ export default function Accounts({ token }) {
           icon={<Calculator size={20} />}
           color="purple"
         />
-
       </div>
 
       {/* RECORD PAYMENT */}
       <div className="bg-slate-900/70 border border-slate-800 rounded-xl overflow-hidden">
-
         <div className="p-5 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <PlusCircle className="text-emerald-400" size={20} />
@@ -301,13 +282,8 @@ export default function Accounts({ token }) {
           </p>
         </div>
 
-        <form
-          onSubmit={handleRecordPayment}
-          className="p-5 space-y-5"
-        >
-
+        <form onSubmit={handleRecordPayment} className="p-5 space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
             {/* INVOICE */}
             <div>
               <label className="block text-sm text-slate-300 mb-2">
@@ -324,16 +300,14 @@ export default function Accounts({ token }) {
                 <option value="">Choose an invoice</option>
 
                 {invoices
-                  .filter(
-                    (invoice) =>
-                      Number(invoice.outstanding_amount) > 0
-                  )
+                  .filter((invoice) => Number(invoice.outstanding_amount) > 0)
                   .map((invoice) => (
                     <option
                       key={invoice.invoice_number}
                       value={invoice.invoice_number}
                     >
-                      {invoice.invoice_number} — {invoice.customer} — Outstanding: ₹
+                      {invoice.invoice_number} — {invoice.customer} —
+                      Outstanding: ₹
                       {Number(invoice.outstanding_amount).toFixed(2)}
                     </option>
                   ))}
@@ -402,14 +376,11 @@ export default function Accounts({ token }) {
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white outline-none focus:border-blue-500"
               />
             </div>
-
           </div>
 
           {/* NOTES */}
           <div>
-            <label className="block text-sm text-slate-300 mb-2">
-              Notes
-            </label>
+            <label className="block text-sm text-slate-300 mb-2">Notes</label>
 
             <textarea
               name="notes"
@@ -425,18 +396,14 @@ export default function Accounts({ token }) {
           {selectedInvoice && (
             <div className="rounded-lg bg-slate-800/70 border border-slate-700 p-4 flex flex-wrap justify-between gap-3">
               <div>
-                <p className="text-xs text-slate-400">
-                  Selected Invoice
-                </p>
+                <p className="text-xs text-slate-400">Selected Invoice</p>
                 <p className="text-white font-medium mt-1">
                   {selectedInvoice.invoice_number}
                 </p>
               </div>
 
               <div>
-                <p className="text-xs text-slate-400">
-                  Outstanding Balance
-                </p>
+                <p className="text-xs text-slate-400">Outstanding Balance</p>
                 <p className="text-amber-400 font-semibold mt-1">
                   {formatCurrency(outstanding)}
                 </p>
@@ -448,10 +415,7 @@ export default function Accounts({ token }) {
                 </p>
                 <p className="text-emerald-400 font-semibold mt-1">
                   {formatCurrency(
-                    Math.max(
-                      0,
-                      outstanding - Number(paymentForm.amount || 0)
-                    )
+                    Math.max(0, outstanding - Number(paymentForm.amount || 0)),
                   )}
                 </p>
               </div>
@@ -490,16 +454,12 @@ export default function Accounts({ token }) {
               </>
             )}
           </button>
-
         </form>
       </div>
 
       {/* SEARCH */}
       <div className="relative">
-        <Search
-          size={17}
-          className="absolute left-3 top-3 text-slate-500"
-        />
+        <Search size={17} className="absolute left-3 top-3 text-slate-500" />
 
         <input
           value={search}
@@ -527,13 +487,10 @@ export default function Accounts({ token }) {
         <>
           {/* PAYMENT HISTORY */}
           <div className="bg-slate-900/70 border border-slate-800 rounded-xl overflow-hidden">
-
             <div className="p-5 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <ArrowDownLeft className="text-emerald-400" size={19} />
-                <h3 className="text-white font-semibold">
-                  Payment History
-                </h3>
+                <h3 className="text-white font-semibold">Payment History</h3>
               </div>
 
               <p className="text-xs text-slate-400 mt-1">
@@ -579,7 +536,9 @@ export default function Accounts({ token }) {
 
                       <td className="px-5 py-4 text-slate-400">
                         {payment.created_at
-                          ? new Date(payment.created_at).toLocaleDateString("en-IN")
+                          ? new Date(payment.created_at).toLocaleDateString(
+                              "en-IN",
+                            )
                           : "—"}
                       </td>
                     </tr>
@@ -587,7 +546,10 @@ export default function Accounts({ token }) {
 
                   {filteredPayments.length === 0 && (
                     <tr>
-                      <td colSpan="6" className="p-6 text-center text-slate-400">
+                      <td
+                        colSpan="6"
+                        className="p-6 text-center text-slate-400"
+                      >
                         No payment records found.
                       </td>
                     </tr>
@@ -599,13 +561,10 @@ export default function Accounts({ token }) {
 
           {/* EXPENSE RECORDS */}
           <div className="bg-slate-900/70 border border-slate-800 rounded-xl overflow-hidden">
-
             <div className="p-5 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <Receipt className="text-blue-400" size={19} />
-                <h3 className="text-white font-semibold">
-                  Expense Records
-                </h3>
+                <h3 className="text-white font-semibold">Expense Records</h3>
               </div>
 
               <p className="text-xs text-slate-400 mt-1">
@@ -646,7 +605,9 @@ export default function Accounts({ token }) {
 
                       <td className="px-5 py-4 text-slate-400">
                         {expense.created_at
-                          ? new Date(expense.created_at).toLocaleDateString("en-IN")
+                          ? new Date(expense.created_at).toLocaleDateString(
+                              "en-IN",
+                            )
                           : "—"}
                       </td>
                     </tr>
@@ -654,7 +615,10 @@ export default function Accounts({ token }) {
 
                   {filteredExpenses.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="p-6 text-center text-slate-400">
+                      <td
+                        colSpan="5"
+                        className="p-6 text-center text-slate-400"
+                      >
                         No expense records found.
                       </td>
                     </tr>
@@ -679,7 +643,9 @@ function SummaryCard({ title, value, icon, color }) {
 
   return (
     <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors[color]}`}>
+      <div
+        className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors[color]}`}
+      >
         {icon}
       </div>
 

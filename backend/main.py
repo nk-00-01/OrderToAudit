@@ -177,7 +177,10 @@ def initialize_production_owner():
 
             print("Production Owner account created successfully.")
         else:
-            print("Production Owner account already exists.")
+              owner.password_hash = hash_password(owner_password)
+              owner.is_active = True
+              db.commit()
+              print("Production Owner password synchronized successfully.")
 
     except Exception as error:
         db.rollback()

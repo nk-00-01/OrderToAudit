@@ -308,16 +308,17 @@ function Inventory({ token }) {
 );
 
 const finishedGoodItem = stockItems.find(
-  (item) => item.sku === "MUR-200"
+  (item) => item.sku === "MUR-200",
 );
 
 const adjustmentItems = [
   ...materialItems,
-  {
+  finishedGoodItem || {
     sku: "MUR-200",
     name: "Murukku 200g",
-    quantity: finishedGoodItem?.quantity ?? 0,
-    unit: finishedGoodItem?.unit || "packet",
+    category: "Finished Goods",
+    quantity: 0,
+    unit: "packet",
   },
 ];
   const filteredItems = stockItems.filter((item) => {
@@ -785,17 +786,21 @@ const adjustmentItems = [
               {activeAction === "material" && (
                 <>
                   <FormField label="Select Inventory Item">
-                    <input
-                      required
-                      value={form.sku}
-                      onChange={(e) => updateForm("sku", e.target.value)}
-                      placeholder="Example: RAW-SUGAR"
-                      className="form-input"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">
-                      Use RAW- for raw materials or PKG- for packaging.
-                    </p>
-                  </FormField>
+  <select
+    required
+    value={form.sku}
+    onChange={(e) => updateForm("sku", e.target.value)}
+    className="form-input"
+  >
+    <option value="">Choose an inventory item</option>
+
+    {adjustmentItems.map((item) => (
+      <option key={item.sku} value={item.sku}>
+        {item.name} ({item.sku}) — {item.quantity} {item.unit}
+      </option>
+    ))}
+  </select>
+</FormField>
 
                   <FormField label="Material Name">
                     <input
